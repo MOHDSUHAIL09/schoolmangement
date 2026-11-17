@@ -1,0 +1,30 @@
+{
+  "name": "schoolsphere-monorepo",
+  "version": "1.0.0",
+  "description": "SchoolSphere — Premium School Management System (Full-Stack Monorepo)",
+  "private": true,
+  "scripts": {
+    "dev:backend": "npm --prefix backend run dev",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "dev": "npm --prefix backend run dev",
+    "start:backend": "npm --prefix backend run start",
+    "start:frontend": "npm --prefix frontend run dev",
+    "seed": "npm --prefix backend run seed",
+    "test": "npm --prefix backend run test",
+    "build": "npm --prefix frontend run build",
+    "start": "node backend/server.js",
+    "install:all": "npm --prefix backend install && npm --prefix frontend install"
+  },
+  "keywords": [
+    "school-management",
+    "react",
+    "express",
+    "mongodb",
+    "socket.io",
+    "gemini-ai",
+    "baileys",
+    "rbac"
+  ],
+  "author": "SchoolSphere Team",
+  "license": "MIT"
+}
