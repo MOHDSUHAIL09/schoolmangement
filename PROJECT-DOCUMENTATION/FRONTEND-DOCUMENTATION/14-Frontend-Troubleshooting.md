@@ -51,8 +51,6 @@ Forms show red error banner or toast: *"Network Error"* or *"AxiosError: Network
 
 ---
 
-## 3. CORS Error in Browser Console
-
 ### Symptom:
 Browser console displays:
 `Access to XMLHttpRequest at 'http://localhost:5000/api/...' from origin 'http://localhost:5173' has been blocked by CORS policy`.
