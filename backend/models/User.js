@@ -145,4 +145,4 @@ userSchema.methods.handleSuccessfulLogin = async function () {
   await this.save({ validateBeforeSave: false });
 };
 
-export default mongoose.model('User', userSchema);
+export default mongoose.model('User', userSchema);  
