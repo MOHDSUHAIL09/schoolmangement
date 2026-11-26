@@ -1,3 +1,4 @@
+
 import express from 'express';
 import http from 'http';
 import cors from 'cors';
@@ -10,7 +11,11 @@ import { ENV } from './config/env.js';
 import { connectDB } from './config/db.js';
 import { initSocket } from './config/socket.js';
 import { logger } from './utils/logger.js';
-import { notFound, errorHandler } from './middleware/errorMiddleware.js';
+import {
+  notFound,
+  errorHandler
+} from './middleware/errorMiddleware.js';
+
 import {
   sanitizeNoSQL,
   sanitizeXSS,
@@ -19,6 +24,7 @@ import {
   enterpriseSecurityHeaders,
   securityAuditLogger
 } from './middleware/securityMiddleware.js';
+
 import { initWhatsApp } from './services/whatsappService.js';
 import { seedDatabase } from './seed/seedDatabase.js';
 import User from './models/User.js';
@@ -42,167 +48,356 @@ import settingRoutes from './routes/settingRoutes.js';
 import uploadRoutes from './routes/uploadRoutes.js';
 import communicationRoutes from './routes/communicationRoutes.js';
 
+// File and Directory Configuration
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Initialize Express
 const app = express();
 const server = http.createServer(app);
 
-// Prevent Technology Fingerprinting (Anti-Reconnaissance)
+// Disable Technology Fingerprinting
 app.disable('x-powered-by');
 
-// Initialize Socket.io via modular config
-const io = initSocket(server);
+// ==========================================
+// CORS CONFIGURATION - FIXED
+// ==========================================
 
-// Security Headers (Helmet Hardening)
-app.use(
-  helmet({
-    crossOriginResourcePolicy: { policy: 'cross-origin' },
-    xContentTypeOptions: true,
-    xFrameOptions: { action: 'deny' },
-    xXssFilter: true,
-    referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
-    hsts: { maxAge: 31536000, includeSubDomains: true, preload: true }
-  })
-);
-
-// Enterprise Extra Security Headers & Live Security Audit Logger
-app.use(enterpriseSecurityHeaders);
-app.use(securityAuditLogger);
-
-// Hardened CORS Protection against Cross-Origin Exploits
 const allowedOrigins = [
+  'https://schoolmanagement07.netlify.app',
   ENV.FRONTEND_URL,
   ENV.CLIENT_URL,
   'http://localhost:5173',
   'http://127.0.0.1:5173',
   'http://localhost:3000',
   'http://127.0.0.1:3000'
-].filter(Boolean);
+]
+  .filter(Boolean)
+  .map(url => url.trim().replace(/\/+$/, ''));
+
+const corsOptions = {
+  origin: (origin, callback) => {
+
+    // Allow direct API requests, curl and Postman
+    if (!origin) {
+      return callback(null, true);
+    }
+
+    // Allow registered frontend origins
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+
+    // Log blocked origins
+    logger.warn(`CORS blocked origin: ${origin}`);
+
+    const error = new Error('Origin not allowed by CORS');
+    error.status = 403;
+    error.statusCode = 403;
+
+    return callback(error);
+  },
+
+  credentials: true,
+
+  methods: [
+    'GET',
+    'POST',
+    'PUT',
+    'PATCH',
+    'DELETE',
+    'OPTIONS',
+    'HEAD'
+  ],
+
+  allowedHeaders: [
+    'Content-Type',
+    'Authorization',
+    'X-Requested-With',
+    'Accept'
+  ],
+
+  preflightContinue: false,
+  optionsSuccessStatus: 204
+};
+
+// Apply CORS before other middleware and routes.
+// This also handles OPTIONS preflight requests.
+app.use(cors(corsOptions));
+
+// ==========================================
+// SOCKET.IO INITIALIZATION
+// ==========================================
+
+const io = initSocket(server);
+
+// ==========================================
+// SECURITY HEADERS
+// ==========================================
 
 app.use(
-  cors({
-    origin: (origin, callback) => {
-      // allow requests with no origin like mobile apps, curl, automated test suites
-      if (!origin || allowedOrigins.includes(origin) || origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:')) {
-        return callback(null, true);
-      }
-      return callback(new Error('Blocked by CORS policy: Origin is not permitted.'));
+  helmet({
+    crossOriginResourcePolicy: {
+      policy: 'cross-origin'
     },
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+
+    xContentTypeOptions: true,
+
+    xFrameOptions: {
+      action: 'deny'
+    },
+
+    xXssFilter: true,
+
+    referrerPolicy: {
+      policy: 'strict-origin-when-cross-origin'
+    },
+
+    hsts: {
+      maxAge: 31536000,
+      includeSubDomains: true,
+      preload: true
+    }
   })
 );
 
-// Rate Limiter
+// Enterprise Security Middleware
+app.use(enterpriseSecurityHeaders);
+app.use(securityAuditLogger);
+
+// ==========================================
+// API RATE LIMITER
+// ==========================================
+
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
+
   max: 1000,
+
   standardHeaders: true,
+
   legacyHeaders: false,
+
   message: {
     success: false,
-    message: 'Too many requests from this IP, please try again after 15 minutes.'
+    message:
+      'Too many requests from this IP, please try again after 15 minutes.'
   }
 });
+
 app.use('/api', apiLimiter);
 
-// Body Parsers & Security Sanitizers (Hardened 2MB limit to mitigate Parser Memory Exhaustion DoS)
-app.use(express.json({ limit: '2mb' }));
-app.use(express.urlencoded({ extended: true, limit: '2mb' }));
+// ==========================================
+// BODY PARSERS
+// ==========================================
 
-// Enterprise Security In-depth Defense
+app.use(
+  express.json({
+    limit: '2mb'
+  })
+);
+
+app.use(
+  express.urlencoded({
+    extended: true,
+    limit: '2mb'
+  })
+);
+
+// ==========================================
+// SECURITY SANITIZERS
+// ==========================================
+
 app.use(sanitizeNoSQL);
 app.use(sanitizeXSS);
 app.use(preventParameterPollution);
 app.use(sanitizeRegexSearch);
 
-// Static uploads folder
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// ==========================================
+// STATIC UPLOADS
+// ==========================================
 
-// Root endpoint
+app.use(
+  '/uploads',
+  express.static(path.join(__dirname, 'uploads'))
+);
+
+// ==========================================
+// ROOT API ENDPOINT
+// ==========================================
+
 app.get(['/', '/api'], (req, res) => {
   res.status(200).json({
     success: true,
+
     name: 'SchoolSphere Backend API',
+
     status: 'Running',
-    frontendUrl: 'http://localhost:5173',
+
+    frontendUrl: ENV.FRONTEND_URL,
+
     healthCheck: '/api/health',
+
     timestamp: new Date().toISOString()
   });
 });
 
-// Health check endpoint
+// ==========================================
+// HEALTH CHECK ENDPOINT
+// ==========================================
+
 app.get('/api/health', (req, res) => {
   res.status(200).json({
     success: true,
+
     message: 'SchoolSphere API is operating normally.',
+
     timestamp: new Date().toISOString()
   });
 });
 
-// Mount Application Routes
+// ==========================================
+// APPLICATION ROUTES
+// ==========================================
+
 app.use('/api/auth', authRoutes);
+
 app.use('/api/users', userRoutes);
+
 app.use('/api/students', studentRoutes);
+
 app.use('/api/teachers', teacherRoutes);
+
 app.use('/api/attendance', attendanceRoutes);
-app.use('/api/teacher-attendance', teacherAttendanceRoutes);
+
+app.use(
+  '/api/teacher-attendance',
+  teacherAttendanceRoutes
+);
+
 app.use('/api/fees', feeRoutes);
+
 app.use('/api/homework', homeworkRoutes);
+
 app.use('/api/chat', chatRoutes);
+
 app.use('/api/exams', examRoutes);
+
 app.use('/api/transport', transportRoutes);
+
 app.use('/api/payroll', payrollRoutes);
+
 app.use('/api/notices', noticeRoutes);
+
 app.use('/api/settings', settingRoutes);
+
 app.use('/api/upload', uploadRoutes);
+
 app.use('/api/communication', communicationRoutes);
 
-// 404 & Centralized Error Handler
+// ==========================================
+// ERROR HANDLING
+// ==========================================
+
 app.use(notFound);
 app.use(errorHandler);
 
-// Start Server helper
+// ==========================================
+// START SERVER
+// ==========================================
+
 export const startServer = async () => {
   try {
+
+    // Connect MongoDB
     await connectDB();
+
+    // Synchronize Existing Faculty
     await syncExistingFaculty();
 
-    // Auto-seed database if empty in development mode
+    // Auto Seed Only in Development
     if (ENV.NODE_ENV !== 'production') {
+
       const userCount = await User.countDocuments();
+
       if (userCount === 0) {
-        logger.info('Empty database detected. Auto-seeding initial development dataset...');
+
+        logger.info(
+          'Empty database detected. Auto-seeding initial development dataset...'
+        );
+
         await seedDatabase();
       }
     }
 
-    // Initialize WhatsApp client safely in background
-    initWhatsApp().catch((err) => {
-      logger.warn('WhatsApp service initialization handled safely:', err.message);
+    // Initialize WhatsApp
+    initWhatsApp().catch(err => {
+      logger.warn(
+        'WhatsApp service initialization handled safely:',
+        err.message
+      );
     });
 
-    return new Promise((resolve) => {
-      server.listen(ENV.PORT, '0.0.0.0', () => {
-        logger.info(`====================================================`);
-        logger.info(` SchoolSphere — Premium School Management System`);
-        logger.info(` Server active on port: ${ENV.PORT} [${ENV.NODE_ENV}]`);
-        logger.info(` API base URL: http://localhost:${ENV.PORT}/api`);
-        logger.info(`====================================================`);
-        resolve(server);
-      });
+    // Start HTTP Server
+    return new Promise((resolve, reject) => {
+
+      server.once('error', reject);
+
+      server.listen(
+        ENV.PORT,
+        '0.0.0.0',
+        () => {
+
+          server.removeListener('error', reject);
+
+          logger.info(
+            '===================================================='
+          );
+
+          logger.info(
+            ' SchoolSphere — Premium School Management System'
+          );
+
+          logger.info(
+            ` Server active on port: ${ENV.PORT}`
+          );
+
+          logger.info(
+            ` Environment: ${ENV.NODE_ENV}`
+          );
+
+          logger.info(
+            ` Frontend URL: ${ENV.FRONTEND_URL}`
+          );
+
+          logger.info(
+            ` Allowed Origins: ${allowedOrigins.join(', ')}`
+          );
+
+          logger.info(
+            '===================================================='
+          );
+
+          resolve(server);
+        }
+      );
     });
+
   } catch (err) {
+
     logger.error('Server failed to start', err);
+
     process.exit(1);
   }
 };
 
-// If run directly
-if (process.argv[1] && process.argv[1].endsWith('server.js')) {
+// Run Server Directly
+if (
+  process.argv[1] &&
+  process.argv[1].endsWith('server.js')
+) {
   startServer();
 }
 
+// Export Application
 export { app, server, io };

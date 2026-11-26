@@ -1,6 +1,6 @@
 import { io } from 'socket.io-client';
 
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || window.location.origin;
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || " https://schoolmangement-3.onrender.com/ ";
 
 let socket = null;
 

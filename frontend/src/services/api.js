@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || '/api',
+  baseURL: import.meta.env.VITE_API_URL || "https://schoolmangement-3.onrender.com/api",
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json'

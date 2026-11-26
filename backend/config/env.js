@@ -7,8 +7,8 @@ export const ENV = {
   MONGO_URI: process.env.MONGO_URI,
   JWT_SECRET: process.env.JWT_SECRET || 'super_secret_school_management_jwt_key_2026_production',
   JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '7d',
-  CLIENT_URL: process.env.CLIENT_URL || process.env.FRONTEND_URL || 'http://localhost:5173',
-  FRONTEND_URL: process.env.FRONTEND_URL || process.env.CLIENT_URL || 'http://localhost:5173',
+  CLIENT_URL: process.env.CLIENT_URL || process.env.FRONTEND_URL || 'https://schoolmanagement07.netlify.app',
+  FRONTEND_URL: process.env.FRONTEND_URL || process.env.CLIENT_URL || 'https://schoolmanagement07.netlify.app',
   GEMINI_API_KEY: process.env.GEMINI_API_KEY || '',
   
   // Nodemailer / SMTP
