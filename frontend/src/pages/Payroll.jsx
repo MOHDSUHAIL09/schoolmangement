@@ -27,6 +27,7 @@ export const Payroll = () => {
   const [stats, setStats] = useState({ totalExpenditure: 0, paidCount: 0, pendingCount: 0 });
   const [loading, setLoading] = useState(true);
   const [teachersList, setTeachersList] = useState([]);
+  const [filterStatus, setFilterStatus] = useState('all'); // 'all' | 'Paid' | 'Pending'
 
   // Modals
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -186,27 +187,33 @@ export const Payroll = () => {
     }
   ];
 
+  const displayedPayrolls = payrolls.filter((p) => {
+    if (filterStatus === 'Paid') return p.status === 'Paid';
+    if (filterStatus === 'Pending') return p.status !== 'Paid';
+    return true;
+  });
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2.5">
-            <BadgeDollarSign className="w-7 h-7 text-slate-900" />
-            <span>Faculty & Administrative Payroll</span>
+            <BadgeDollarSign className="w-7 h-7 text-cyan-800" />
+            <span>Teacher Fees & Faculty Payroll Management</span>
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            Executive financial compensation, monthly salary schedules, and printable remuneration statements.
+            Super Admin portal to manage teachers' fees, track payment records, and disburse pending payments.
           </p>
         </div>
 
-        {['super_admin', 'principal'].includes(role) && (
+        {['super_admin', 'admin', 'principal'].includes(role) && (
           <button
             onClick={() => setIsCreateModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold text-sm rounded-xl shadow-xs transition duration-150 self-start sm:self-auto"
+            className="flex items-center gap-2 px-4 py-2.5 bg-cyan-800 hover:bg-cyan-900 text-white font-semibold text-sm rounded-xl shadow-xs transition duration-150 self-start sm:self-auto"
           >
             <Plus className="w-4 h-4" />
-            <span>Generate Staff Payroll</span>
+            <span>Record Teacher Fee / Salary</span>
           </button>
         )}
       </div>
@@ -216,36 +223,81 @@ export const Payroll = () => {
         <StatCard
           title="Total Monthly Expenditure"
           value={formatCurrency(stats.totalExpenditure)}
-          subtitle="Net institutional payroll"
+          subtitle="Net institutional payroll & teacher fees"
           icon={Building}
           accent="emerald"
         />
         <StatCard
           title="Disbursed Accounts"
           value={stats.paidCount}
-          subtitle="Fully settled staff"
+          subtitle="Settled fee payment records"
           icon={CheckCircle}
           accent="emerald"
         />
         <StatCard
           title="Pending Dispatches"
           value={stats.pendingCount}
-          subtitle="Awaiting authorization"
+          subtitle="Pending teacher fee payments"
           icon={CreditCard}
           accent={stats.pendingCount > 0 ? 'red' : 'emerald'}
         />
       </div>
 
+      {/* Payment Records & Pending Payments Filter Tabs */}
+      <div className="flex items-center gap-2 border-b border-slate-200 pb-2">
+        <button
+          onClick={() => setFilterStatus('all')}
+          className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-2 ${
+            filterStatus === 'all'
+              ? 'bg-cyan-800 text-white shadow-xs'
+              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+          }`}
+        >
+          <span>All Fee Records</span>
+          <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-white/20 font-black">
+            {payrolls.length}
+          </span>
+        </button>
+
+        <button
+          onClick={() => setFilterStatus('Paid')}
+          className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-2 ${
+            filterStatus === 'Paid'
+              ? 'bg-emerald-700 text-white shadow-xs'
+              : 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200'
+          }`}
+        >
+          <span>Paid Records</span>
+          <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-white/20 font-black">
+            {payrolls.filter((p) => p.status === 'Paid').length}
+          </span>
+        </button>
+
+        <button
+          onClick={() => setFilterStatus('Pending')}
+          className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-2 ${
+            filterStatus === 'Pending'
+              ? 'bg-rose-700 text-white shadow-xs'
+              : 'bg-rose-50 text-rose-800 hover:bg-rose-100 border border-rose-200'
+          }`}
+        >
+          <span>Pending Payments</span>
+          <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-white/20 font-black">
+            {payrolls.filter((p) => p.status !== 'Paid').length}
+          </span>
+        </button>
+      </div>
+
       {/* Payroll Table */}
       <DataTable
         columns={columns}
-        data={payrolls}
-        searchPlaceholder="Search employee or payroll month..."
-        exportFileName="Staff_Payroll_Records"
+        data={displayedPayrolls}
+        searchPlaceholder="Search teacher fee records, month, status..."
+        exportFileName="Teacher_Fee_and_Payroll_Records"
       />
 
       {/* Generate Payroll Modal */}
-      <Modal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} title="Process Staff Compensation">
+      <Modal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} title="Record Teacher Fee / Payroll Schedule">
         <form onSubmit={handleCreate} className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>

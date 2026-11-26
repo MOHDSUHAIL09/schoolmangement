@@ -130,6 +130,7 @@ export const AuthProvider = ({ children }) => {
         childrenList,
         activeChild,
         switchActiveChild,
+        setActiveChild: switchActiveChild,
         updateCurrentUser
       }}
     >

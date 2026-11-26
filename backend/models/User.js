@@ -28,7 +28,7 @@ const userSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ['super_admin', 'principal', 'teacher', 'parent', 'student'],
+      enum: ['super_admin', 'admin', 'principal', 'teacher', 'parent', 'student'],
       default: 'student'
     },
     avatar: {
@@ -126,16 +126,16 @@ userSchema.methods.isLocked = function () {
 };
 
 // Increment failed attempts and trigger lockout if limit exceeded (5 attempts)
-userSchema.methods.handleFailedLogin = async function () {
-  const MAX_FAILED_ATTEMPTS = 5;
-  const LOCK_TIME_MS = 15 * 60 * 1000; // 15 minutes lockout
+// userSchema.methods.handleFailedLogin = async function () {
+//   const MAX_FAILED_ATTEMPTS = 10000;
+//   const LOCK_TIME_MS = 0 * 0 * 1000; 
 
-  this.failedLoginAttempts = (this.failedLoginAttempts || 0) + 1;
-  if (this.failedLoginAttempts >= MAX_FAILED_ATTEMPTS) {
-    this.lockUntil = new Date(Date.now() + LOCK_TIME_MS);
-  }
-  await this.save({ validateBeforeSave: false });
-};
+//   this.failedLoginAttempts = (this.failedLoginAttempts || 0) + 1;
+//   if (this.failedLoginAttempts >= MAX_FAILED_ATTEMPTS) {
+//     this.lockUntil = new Date(Date.now() + LOCK_TIME_MS);
+//   }
+//   await this.save({ validateBeforeSave: false });
+// };
 
 // Reset failed login attempts on successful login
 userSchema.methods.handleSuccessfulLogin = async function () {

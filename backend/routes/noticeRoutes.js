@@ -15,11 +15,11 @@ router.use(protect);
 
 router.route('/')
   .get(getAllNotices)
-  .post(authorizeRoles('super_admin', 'principal', 'teacher'), createNotice);
+  .post(authorizeRoles('super_admin', 'admin', 'principal', 'teacher'), createNotice);
 
 router.route('/:id')
   .get(getNoticeById)
-  .put(authorizeRoles('super_admin', 'principal', 'teacher'), updateNotice)
-  .delete(authorizeRoles('super_admin', 'principal'), deleteNotice);
+  .put(authorizeRoles('super_admin', 'admin', 'principal', 'teacher'), updateNotice)
+  .delete(authorizeRoles('super_admin', 'admin', 'principal'), deleteNotice);
 
 export default router;

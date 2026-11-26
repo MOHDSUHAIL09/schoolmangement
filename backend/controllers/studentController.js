@@ -196,6 +196,7 @@ export const deleteStudent = async (req, res, next) => {
 // @access  Private (Parent)
 export const getMyChildren = async (req, res, next) => {
   try {
+    // Strictly fetch only children linked to THIS parent
     const children = await Student.find({ parentIds: req.user._id })
       .populate('routeId', 'routeName vehicleNumber driverName driverPhone')
       .sort({ name: 1 });
@@ -218,16 +219,22 @@ export const getClassesMeta = async (req, res, next) => {
     const classes = await Student.distinct('classGrade');
     const sections = await Student.distinct('section');
 
-    const defaultClasses = classes.length > 0 
-      ? classes 
-      : ['Class 1', 'Class 2', 'Class 3', 'Class 4', 'Class 5', 'Class 6', 'Class 7', 'Class 8', 'Class 9', 'Class 10', 'Class 11', 'Class 12'];
-    const defaultSections = sections.length > 0 ? sections : ['A', 'B', 'C'];
+    const defaultClasses = [
+      'Class 1', 'Class 2', 'Class 3', 'Class 4', 'Class 5', 'Class 6',
+      'Class 7', 'Class 8', 'Class 9', 'Class 10', 'Class 11', 'Class 12'
+    ];
+    const classNum = (c) => parseInt(c.replace(/\D/g, '')) || 0;
+    const mergedClasses = Array.from(new Set([...defaultClasses, ...(classes || [])]))
+      .sort((a, b) => classNum(a) - classNum(b));
+
+    const defaultSections = ['A', 'B', 'C', 'D'];
+    const mergedSections = Array.from(new Set([...defaultSections, ...(sections || [])])).sort();
 
     res.status(200).json({
       success: true,
       data: {
-        classes: defaultClasses,
-        sections: defaultSections
+        classes: mergedClasses,
+        sections: mergedSections
       }
     });
   } catch (err) {

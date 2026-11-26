@@ -648,7 +648,7 @@ export const Exams = () => {
             <span>AI Exam Studio</span>
           </Link>
 
-          {['super_admin', 'principal', 'teacher'].includes(role) && (
+          {['super_admin', 'admin', 'principal', 'teacher'].includes(role) && (
             <button
               onClick={() => setIsCreateModalOpen(true)}
               className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-500 hover:to-teal-500 text-white font-bold text-xs rounded-xl shadow-md shadow-cyan-600/25 transition"
@@ -725,7 +725,7 @@ export const Exams = () => {
             <span>Exam Schedule</span>
           </button>
 
-          {['super_admin', 'principal', 'teacher'].includes(role) && (
+          {['super_admin', 'admin', 'principal', 'teacher'].includes(role) && (
             <button
               onClick={() => setActiveTab('marks')}
               className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition ${
@@ -899,7 +899,7 @@ export const Exams = () => {
                           </button>
                         )}
 
-                        {['super_admin', 'principal', 'teacher'].includes(role) && (
+                        {['super_admin', 'admin', 'principal', 'teacher'].includes(role) && (
                           <>
                             <button
                               onClick={() => {

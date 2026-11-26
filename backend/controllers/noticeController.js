@@ -1,4 +1,5 @@
 import Notice from '../models/Notice.js';
+import { getIO } from '../config/socket.js';
 
 // @desc    Get all notices / events / gallery
 // @route   GET /api/notices
@@ -64,7 +65,18 @@ export const createNotice = async (req, res, next) => {
       createdBy: req.user._id
     });
 
-    res.status(201).json({ success: true, message: 'Notice posted successfully', data: notice });
+    const populatedNotice = await Notice.findById(notice._id).populate('createdBy', 'name role');
+
+    try {
+      const io = getIO();
+      if (io) {
+        io.emit('new_notice', populatedNotice);
+      }
+    } catch (socketErr) {
+      // In case socket is not initialized
+    }
+
+    res.status(201).json({ success: true, message: 'Notice posted successfully', data: populatedNotice });
   } catch (err) {
     next(err);
   }

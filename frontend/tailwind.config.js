@@ -7,71 +7,97 @@ export default {
   theme: {
     extend: {
       colors: {
-        theme: {
-          bg: '#F7F8FA',
+        // DevSkill Theme Mapping:
+        // Vibrant Coral/Orange as Primary, Emerald Green as Secondary, Warm Cream as Background
+        brand: {
+          orange: '#FF5E3A',
+          'orange-hover': '#E84E2A',
+          'orange-light': '#FFF0EB',
+          'orange-border': '#FEEAE1',
+          green: '#00B074',
+          'green-hover': '#059669',
+          'green-light': '#E8F8F2',
+          bg: '#FFF6F2',
           surface: '#FFFFFF',
-          text: '#171717',
-          secondary: '#6B7280',
-          border: '#E5E7EB',
-          accent: '#111827',
-          success: '#15803D',
-          warning: '#B45309',
-          danger: '#B91C1C'
+          dark: '#111827',
+          gray: '#4B5563',
+          border: '#FEEAE1'
         },
-        // Graceful mappings for components
-        dark: {
-          950: '#F7F8FA',
-          900: '#FFFFFF',
-          850: '#F7F8FA',
-          800: '#FFFFFF',
-          750: '#F3F4F6',
-          700: '#E5E7EB',
-          600: '#D1D5DB'
+        theme: {
+          bg: '#FFF6F2',
+          surface: '#FFFFFF',
+          text: '#111827',
+          secondary: '#4B5563',
+          border: '#FEEAE1',
+          accent: '#FF5E3A',
+          success: '#00B074',
+          warning: '#F59E0B',
+          danger: '#EF4444'
         },
-        forest: {
-          950: '#F0FDF4',
-          900: '#DCFCE7',
-          800: '#BBF7D0',
-          700: '#15803D',
-          600: '#16A34A',
-          500: '#22C55E',
-          400: '#15803D',
-          300: '#166534',
-          200: '#14532D',
-          100: '#F0FDF4'
+        // Global override for cyan so all existing components seamlessly adopt the warm Coral/Orange theme
+        cyan: {
+          50: '#FFF6F2',
+          100: '#FEEAE1',
+          200: '#FED7C7',
+          300: '#FDAE94',
+          400: '#FF805B',
+          500: '#FF5E3A',
+          600: '#E84E2A',
+          700: '#C73817',
+          800: '#9E2C11',
+          900: '#7F240E',
+          950: '#4A1104'
         },
-        gold: {
-          700: '#92400E',
-          600: '#B45309',
-          500: '#D97706',
-          400: '#B45309',
-          300: '#92400E',
-          200: '#FEF3C7'
+        // Global override for teal so gradients seamlessly transition into vibrant Emerald Green
+        teal: {
+          50: '#E8F8F2',
+          100: '#D1FAE5',
+          200: '#A7F3D0',
+          300: '#6EE7B7',
+          400: '#34D399',
+          500: '#00B074',
+          600: '#059669',
+          700: '#047857',
+          800: '#065F46',
+          900: '#064E3B',
+          950: '#022C22'
         },
+        // Graceful mappings for aqua and dark
         aqua: {
-          50: '#ECFEFF',
-          100: '#CFFAFE',
-          200: '#A5F3FC',
-          300: '#67E8F9',
-          400: '#22D3EE',
-          500: '#06B6D4',
-          600: '#0891B2',
-          700: '#0E7490',
-          800: '#155E75',
-          900: '#164E63',
-          950: '#083344'
+          50: '#FFF6F2',
+          100: '#FEEAE1',
+          200: '#FED7C7',
+          300: '#FDAE94',
+          400: '#FF805B',
+          500: '#FF5E3A',
+          600: '#E84E2A',
+          700: '#C73817',
+          800: '#9E2C11',
+          900: '#7F240E',
+          950: '#4A1104'
+        },
+        dark: {
+          950: '#FFF6F2',
+          900: '#FFFFFF',
+          850: '#FFF9F6',
+          800: '#FFFFFF',
+          750: '#FFF0EB',
+          700: '#FEEAE1',
+          600: '#E5E7EB'
         }
       },
       fontFamily: {
         sans: ['Plus Jakarta Sans', 'Inter', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
       },
       boxShadow: {
-        'subtle': '0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.04)',
-        'premium': '0 4px 14px 0 rgba(0, 0, 0, 0.05)',
-        'card': '0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.04)',
-        'dropdown': '0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04)',
-        'aqua-glow': '0 4px 20px -2px rgba(6, 182, 212, 0.25)',
-        'aqua-sm': '0 2px 8px -1px rgba(6, 182, 212, 0.15)'
+        'subtle': '0 1px 3px 0 rgba(255, 94, 58, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.04)',
+        'premium': '0 4px 18px 0 rgba(255, 94, 58, 0.08)',
+        'card': '0 1px 4px 0 rgba(255, 94, 58, 0.06), 0 1px 2px -1px rgba(0, 0, 0, 0.04)',
+        'dropdown': '0 12px 28px -5px rgba(255, 94, 58, 0.12), 0 8px 10px -6px rgba(0, 0, 0, 0.04)',
+        'orange-glow': '0 4px 20px -2px rgba(255, 94, 58, 0.35)',
+        'orange-sm': '0 2px 8px -1px rgba(255, 94, 58, 0.2)',
+        'green-glow': '0 4px 20px -2px rgba(0, 176, 116, 0.35)',
+        'green-sm': '0 2px 8px -1px rgba(0, 176, 116, 0.2)'
       }
     },
   },

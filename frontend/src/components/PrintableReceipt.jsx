@@ -10,7 +10,11 @@ export const PrintableReceipt = ({ fee, student }) => {
     window.print();
   };
 
-  const studentData = student || fee?.studentId || {};
+  const studentData = student || (typeof fee?.studentId === 'object' && fee?.studentId !== null ? fee.studentId : {}) || {};
+  const studentName = fee?.studentName || studentData.name || 'Student';
+  const rollNo = fee?.rollNumber || studentData.rollNumber || '-';
+  const classGrade = fee?.classGrade || studentData.classGrade || 'Class 10';
+  const studentIdStr = studentData.studentId || fee?.admissionNumber || `STD-${fee?._id?.slice(-6).toUpperCase()}`;
 
   return (
     <div className="printable-area bg-white text-gray-900 p-8 rounded-2xl shadow-xl max-w-2xl mx-auto border border-gray-200">
@@ -58,32 +62,32 @@ export const PrintableReceipt = ({ fee, student }) => {
       <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 grid grid-cols-2 gap-4 text-xs mb-6">
         <div>
           <span className="text-gray-500 font-medium block">Student Name:</span>
-          <span className="text-sm font-bold text-gray-900">{studentData.name || 'Student'}</span>
+          <span className="text-sm font-bold text-gray-900">{studentName}</span>
         </div>
         <div>
           <span className="text-gray-500 font-medium block">Student ID / Roll:</span>
           <span className="text-sm font-bold text-gray-900 font-mono">
-            {studentData.studentId} &bull; #{studentData.rollNumber}
+            {studentIdStr} &bull; #{rollNo}
           </span>
         </div>
         <div>
           <span className="text-gray-500 font-medium block">Class & Section:</span>
           <span className="text-sm font-bold text-gray-900">
-            {studentData.classGrade} - {studentData.section}
+            {classGrade} - {studentData.section || 'A'}
           </span>
         </div>
         <div>
           <span className="text-gray-500 font-medium block">Payment Status:</span>
           <span
             className={`font-bold uppercase text-[11px] px-2.5 py-0.5 rounded-full inline-block mt-0.5 ${
-              fee?.status === 'Paid'
-                ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
-                : fee?.status === 'Partial'
-                ? 'bg-amber-100 text-amber-800 border border-amber-200'
-                : 'bg-red-100 text-red-800 border border-red-200'
+              fee?.remainingAmount === 0 || fee?.status === 'Paid'
+                ? 'bg-slate-100 text-slate-800 border border-slate-300 font-extrabold'
+                : fee?.status === 'Overdue'
+                ? 'bg-red-100 text-red-800 border border-red-200'
+                : 'bg-amber-100 text-amber-800 border border-amber-200'
             }`}
           >
-            {fee?.status || 'Pending'}
+            {fee?.remainingAmount === 0 || fee?.status === 'Paid' ? 'Paid' : (fee?.status === 'Overdue' ? 'Overdue' : 'Pending')}
           </span>
         </div>
       </div>
@@ -126,19 +130,46 @@ export const PrintableReceipt = ({ fee, student }) => {
         </tbody>
         <tfoot className="border-t-2 border-gray-300 bg-gray-50 font-bold text-gray-900">
           <tr>
-            <td className="py-2.5 px-4">Total Amount Due</td>
+            <td className="py-2.5 px-4">Total Assessed Fee</td>
             <td className="py-2.5 px-4 text-right text-sm">{formatCurrency(fee?.totalAmount)}</td>
           </tr>
-          <tr className="text-emerald-700">
+          <tr className="text-slate-900">
             <td className="py-2.5 px-4">Paid Amount</td>
             <td className="py-2.5 px-4 text-right text-sm font-extrabold">{formatCurrency(fee?.paidAmount)}</td>
           </tr>
-          <tr className="text-red-600">
-            <td className="py-2.5 px-4">Outstanding Balance</td>
+          <tr className="text-[#FF5E3A]">
+            <td className="py-2.5 px-4">Balance Due</td>
             <td className="py-2.5 px-4 text-right text-sm font-extrabold">{formatCurrency(fee?.remainingAmount)}</td>
           </tr>
         </tfoot>
       </table>
+
+      {/* Payment History / Receipts Ledger if payments recorded */}
+      {fee?.payments && fee.payments.length > 0 && (
+        <div className="mb-6">
+          <h4 className="text-[11px] font-bold text-gray-600 uppercase tracking-wider mb-2">Payment Collection History</h4>
+          <table className="w-full text-xs text-left border border-gray-200">
+            <thead className="bg-gray-100 text-gray-700 font-bold uppercase text-[10px]">
+              <tr>
+                <th className="py-2 px-3">Date</th>
+                <th className="py-2 px-3">Receipt #</th>
+                <th className="py-2 px-3">Method</th>
+                <th className="py-2 px-3 text-right">Amount Deposited</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200 text-gray-800">
+              {fee.payments.map((p, idx) => (
+                <tr key={idx} className="hover:bg-gray-50">
+                  <td className="py-1.5 px-3">{formatDate(p.paymentDate)}</td>
+                  <td className="py-1.5 px-3 font-mono">{p.receiptNumber || p.transactionId || '-'}</td>
+                  <td className="py-1.5 px-3">{p.paymentMethod || 'Cash'}</td>
+                  <td className="py-1.5 px-3 text-right font-bold text-emerald-700">{formatCurrency(p.amount)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {/* Payment Details & Signatures */}
       <div className="grid grid-cols-2 gap-8 text-xs pt-4 border-t border-gray-200">

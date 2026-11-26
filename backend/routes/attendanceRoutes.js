@@ -14,11 +14,11 @@ const router = express.Router();
 
 router.use(protect);
 
-router.post('/bulk', authorizeRoles('super_admin', 'principal', 'teacher'), markBulkAttendance);
-router.get('/class', getAttendanceByClass);
-router.get('/monthly', getMonthlyAttendance);
-router.get('/report', getAttendanceReport);
+router.post('/bulk', authorizeRoles('super_admin', 'admin', 'principal', 'teacher'), markBulkAttendance);
+router.get('/class', authorizeRoles('super_admin', 'admin', 'principal', 'teacher'), getAttendanceByClass);
+router.get('/monthly', authorizeRoles('super_admin', 'admin', 'principal', 'teacher'), getMonthlyAttendance);
+router.get('/report', authorizeRoles('super_admin', 'admin', 'principal', 'teacher'), getAttendanceReport);
+router.get('/stats/overview', authorizeRoles('super_admin', 'admin', 'principal', 'teacher'), getAttendanceOverview);
 router.get('/student/:studentId', getStudentAttendanceSummary);
-router.get('/stats/overview', getAttendanceOverview);
 
 export default router;

@@ -24,7 +24,7 @@ router.route('/')
 
 router.route('/:id')
   .get(getUserById)
-  .put(authorizeRoles('super_admin', 'principal'), updateUser)
-  .delete(authorizeRoles('super_admin'), deleteUser);
+  .put(authorizeRoles('super_admin', 'admin', 'principal'), updateUser)
+  .delete(authorizeRoles('super_admin', 'admin', 'principal'), deleteUser);
 
 export default router;

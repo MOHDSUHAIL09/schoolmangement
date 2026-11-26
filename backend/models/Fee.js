@@ -1,11 +1,67 @@
 import mongoose from 'mongoose';
 
+const paymentRecordSchema = new mongoose.Schema(
+  {
+    studentName: {
+      type: String,
+      default: '',
+      trim: true
+    },
+    amount: {
+      type: Number,
+      required: true,
+      min: 1
+    },
+    paymentDate: {
+      type: Date,
+      default: Date.now
+    },
+    paymentMethod: {
+      type: String,
+      enum: ['Cash', 'Credit Card', 'Bank Transfer', 'UPI', 'Cheque', 'Online', 'None', 'Other'],
+      default: 'Cash'
+    },
+    receiptNumber: {
+      type: String,
+      default: ''
+    },
+    transactionId: {
+      type: String,
+      default: ''
+    },
+    remarks: {
+      type: String,
+      default: ''
+    },
+    receivedBy: {
+      type: String,
+      default: 'Admin'
+    }
+  },
+  { timestamps: true }
+);
+
 const feeSchema = new mongoose.Schema(
   {
     studentId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Student',
       required: true
+    },
+    studentName: {
+      type: String,
+      default: '',
+      trim: true
+    },
+    rollNumber: {
+      type: String,
+      default: '',
+      trim: true
+    },
+    admissionNumber: {
+      type: String,
+      default: '',
+      trim: true
     },
     classGrade: {
       type: String,
@@ -76,7 +132,7 @@ const feeSchema = new mongoose.Schema(
     },
     paymentMethod: {
       type: String,
-      enum: ['Cash', 'Credit Card', 'Bank Transfer', 'UPI', 'Cheque', 'Online', 'None'],
+      enum: ['Cash', 'Credit Card', 'Bank Transfer', 'UPI', 'Cheque', 'Online', 'None', 'Other'],
       default: 'None'
     },
     transactionId: {
@@ -86,6 +142,16 @@ const feeSchema = new mongoose.Schema(
     remarks: {
       type: String,
       default: ''
+    },
+    // Payment ledger / transactions history
+    payments: [paymentRecordSchema],
+    lastPaymentDate: {
+      type: Date,
+      default: null
+    },
+    lastPaymentAmount: {
+      type: Number,
+      default: 0
     }
   },
   {
@@ -96,7 +162,7 @@ const feeSchema = new mongoose.Schema(
 );
 
 feeSchema.pre('save', function (next) {
-  this.totalAmount =
+  const sumItems =
     (Number(this.tuition) || 0) +
     (Number(this.game) || 0) +
     (Number(this.transport) || 0) +
@@ -104,7 +170,16 @@ feeSchema.pre('save', function (next) {
     (Number(this.events) || 0) +
     (Number(this.other) || 0);
 
-  this.remainingAmount = Math.max(0, this.totalAmount - (Number(this.paidAmount) || 0));
+  if (sumItems === 0 && Number(this.totalAmount) > 0) {
+    this.tuition = Number(this.totalAmount);
+    this.totalAmount = this.tuition;
+  } else {
+    this.totalAmount = sumItems;
+  }
+
+  const paid = Math.max(0, Number(this.paidAmount) || 0);
+  this.paidAmount = paid;
+  this.remainingAmount = Math.max(0, this.totalAmount - paid);
 
   if (this.paymentReference && !this.transactionId) {
     this.transactionId = this.paymentReference;
@@ -112,19 +187,20 @@ feeSchema.pre('save', function (next) {
     this.paymentReference = this.transactionId;
   }
 
-  if (this.paidAmount >= this.totalAmount && this.totalAmount > 0) {
+  // Exact School fee management: Only 'Paid' or 'Pending' (or 'Overdue' if date passed)
+  // No ambiguous 'Partial' status!
+  if (this.remainingAmount === 0 && this.totalAmount > 0) {
     this.status = 'Paid';
-  } else if (this.paidAmount > 0 && this.paidAmount < this.totalAmount) {
-    this.status = 'Partial';
-  } else if (this.dueDate && new Date(this.dueDate) < new Date() && this.status !== 'Paid') {
+  } else if (this.dueDate && new Date(this.dueDate) < new Date() && this.remainingAmount > 0) {
     this.status = 'Overdue';
-  } else if (this.paidAmount === 0) {
+  } else {
     this.status = 'Pending';
   }
   next();
 });
 
 feeSchema.index({ studentId: 1, month: 1 });
+feeSchema.index({ studentName: 1 });
 feeSchema.index({ status: 1 });
 feeSchema.index({ classGrade: 1 });
 

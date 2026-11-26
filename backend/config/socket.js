@@ -31,31 +31,67 @@ export const initSocket = (server) => {
       }
     });
 
-    // Join specific chat conversation room
+    // Join specific chat conversation room (strictly authorized)
     socket.on('join_chat', (room) => {
+      if (!room || typeof room !== 'string') return;
+
+      // Security Check: Only allow joining if the socket user is one of the room's two participants
+      const participants = room.split(':');
+      if (socket.userId && !participants.includes(socket.userId.toString())) {
+        logger.warn(`Unauthorized join_chat attempt blocked: User ${socket.userId} tried to join room ${room}`);
+        return;
+      }
+
       socket.join(room);
-      logger.socket(`Socket ${socket.id} joined conversation room: ${room}`);
+      logger.socket(`Socket ${socket.id} (User: ${socket.userId}) securely joined room: ${room}`);
     });
 
-    // Typing indicators
-    socket.on('typing', (room) => socket.in(room).emit('typing', room));
-    socket.on('stop_typing', (room) => socket.in(room).emit('stop_typing', room));
+    // Leave specific chat conversation room
+    socket.on('leave_chat', (room) => {
+      if (room && typeof room === 'string') {
+        socket.leave(room);
+        logger.socket(`Socket ${socket.id} (User: ${socket.userId}) left room: ${room}`);
+      }
+    });
 
-    // Direct Message dispatch
+    // Typing indicators strictly scoped to room participants
+    socket.on('typing', (room) => {
+      if (!room || typeof room !== 'string') return;
+      const participants = room.split(':');
+      if (socket.userId && !participants.includes(socket.userId.toString())) return;
+      socket.in(room).emit('typing', room);
+    });
+
+    socket.on('stop_typing', (room) => {
+      if (!room || typeof room !== 'string') return;
+      const participants = room.split(':');
+      if (socket.userId && !participants.includes(socket.userId.toString())) return;
+      socket.in(room).emit('stop_typing', room);
+    });
+
+    // Direct Message dispatch with strict validation
     socket.on('new_message', (newMsg) => {
       if (!newMsg || !newMsg.receiverId) return;
 
       const receiverId = typeof newMsg.receiverId === 'object' ? newMsg.receiverId._id : newMsg.receiverId;
+      const senderId = typeof newMsg.senderId === 'object' ? newMsg.senderId?._id : newMsg.senderId;
       const room = newMsg.conversationId;
 
-      if (room) {
-        // Broadcast to conversation room (other participants)
-        socket.in(room).emit('message_received', newMsg);
+      if (!room || typeof room !== 'string') return;
+
+      const participants = room.split(':');
+      if (socket.userId && !participants.includes(socket.userId.toString())) {
+        logger.warn(`Unauthorized new_message dispatch attempt by user ${socket.userId} to room ${room}`);
+        return;
       }
-      // Also notify receiver's personal user room
+
+      // Broadcast to specific conversation room (strictly isolated)
+      socket.in(room).emit('message_received', newMsg);
+
+      // Notify receiver's personal user room
       socket.in(`user:${receiverId}`).emit('notification_received', {
         type: 'chat',
-        from: newMsg.senderId,
+        from: senderId,
         message: newMsg.message,
         conversationId: room
       });

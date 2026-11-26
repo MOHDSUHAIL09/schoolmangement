@@ -36,7 +36,7 @@ export const registerValidation = [
   body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters long'),
   body('role')
     .optional()
-    .isIn(['super_admin', 'principal', 'teacher', 'parent', 'student'])
+    .isIn(['super_admin', 'admin', 'principal', 'teacher', 'parent', 'student'])
     .withMessage('Invalid role provided')
 ];
 

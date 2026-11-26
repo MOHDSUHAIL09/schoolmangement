@@ -52,10 +52,10 @@ export const seedDatabase = async () => {
     });
 
     // 2. Seed Users
-    // Super Admin
-    const adminUser = await User.create({
+    // Super Admin (Highest Central Access)
+    const superAdminUser = await User.create({
       name: 'Dr. Evelyn Sterling',
-      email: 'admin@schoolsphere.com',
+      email: 'superadmin@schoolsphere.com',
       password: 'admin123',
       role: 'super_admin',
       phone: '+1 (555) 100-0001',
@@ -65,10 +65,10 @@ export const seedDatabase = async () => {
       status: 'active'
     });
 
-    // Secondary Admin alias for admin@school.com
+    // Super Admin alias
     await User.create({
-      name: 'System Administrator',
-      email: 'admin@school.com',
+      name: 'Super Administrator',
+      email: 'superadmin@school.com',
       password: 'admin123',
       role: 'super_admin',
       phone: '+1 (555) 100-0099',
@@ -76,15 +76,37 @@ export const seedDatabase = async () => {
       status: 'active'
     });
 
-    // Principal
-    const principalUser = await User.create({
+    // Admin (Replaces Principal as primary operational Admin)
+    const adminUser = await User.create({
       name: 'Arthur Pendelton',
-      email: 'principal@schoolsphere.com',
-      password: 'principal123',
-      role: 'principal',
+      email: 'admin@schoolsphere.com',
+      password: 'admin123',
+      role: 'admin',
       phone: '+1 (555) 100-0002',
       profileImage: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=150&auto=format&fit=crop&q=80',
       avatar: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=150&auto=format&fit=crop&q=80',
+      isActive: true,
+      status: 'active'
+    });
+    const principalUser = adminUser;
+
+    await User.create({
+      name: 'Arthur Pendelton',
+      email: 'admin@school.com',
+      password: 'admin123',
+      role: 'admin',
+      phone: '+1 (555) 100-0002',
+      isActive: true,
+      status: 'active'
+    });
+
+    // Compatibility Principal aliases (for backwards compatibility)
+    await User.create({
+      name: 'Arthur Pendelton',
+      email: 'principal@schoolsphere.com',
+      password: 'principal123',
+      role: 'admin',
+      phone: '+1 (555) 100-0002',
       isActive: true,
       status: 'active'
     });
@@ -93,7 +115,7 @@ export const seedDatabase = async () => {
       name: 'Arthur Pendelton',
       email: 'principal@school.com',
       password: 'principal123',
-      role: 'principal',
+      role: 'admin',
       phone: '+1 (555) 100-0002',
       isActive: true,
       status: 'active'
@@ -770,7 +792,7 @@ export const seedDatabase = async () => {
 
     // 9. Seed Staff Payroll Records
     await Payroll.create({
-      employeeId: adminUser._id,
+      employeeId: superAdminUser._id,
       salaryMonth: 'November 2026',
       baseSalary: 9500,
       allowances: 1200,
@@ -778,11 +800,11 @@ export const seedDatabase = async () => {
       status: 'Paid',
       paymentDate: new Date(),
       paymentMethod: 'Direct Deposit',
-      remarks: 'Executive monthly compensation disbursed'
+      remarks: 'Super Admin executive compensation disbursed'
     });
 
     await Payroll.create({
-      employeeId: principalUser._id,
+      employeeId: adminUser._id,
       salaryMonth: 'November 2026',
       baseSalary: 8200,
       allowances: 1000,
@@ -790,7 +812,7 @@ export const seedDatabase = async () => {
       status: 'Paid',
       paymentDate: new Date(),
       paymentMethod: 'Direct Deposit',
-      remarks: 'Executive monthly compensation disbursed'
+      remarks: 'Admin executive compensation disbursed'
     });
 
     await Payroll.create({

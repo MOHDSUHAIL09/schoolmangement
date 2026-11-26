@@ -2,74 +2,239 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --color-primary-orange: #FF5E3A;
+  --color-dark-orange: #E84E2A;
+  --color-soft-orange: #FFF0EB;
+  --color-emerald-green: #00B074;
+  --color-dark-green: #047857;
+  --color-soft-green: #E8F8F2;
+  --color-warm-bg: #FFF6F2;
+  --color-surface: #FFFFFF;
+  --color-dark-text: #111827;
+  --color-body-text: #4B5563;
+  --color-warm-border: #FEEAE1;
+
+  /* Harmonious backwards-compatible mappings */
+  --color-primary-aqua: #FF5E3A;
+  --color-deep-aqua: #FF5E3A;
+  --color-soft-aqua: #FDAE94;
+  --color-aqua-teal: #00B074;
+  --color-dark-aqua: #E84E2A;
+  --color-deepest-aqua: #111827;
+  --color-light-aqua-bg: #FFF6F2;
+  --color-mid-aqua-bg: #FEEAE1;
+  --color-surface-aqua: #FFFFFF;
+  --color-border-aqua: #FEEAE1;
+}
+
 @layer base {
   body {
-    background-color: #F7F8FA;
-    color: #171717;
+    background-color: #FFF6F2;
+    color: #111827;
     font-family: -apple-system, BlinkMacSystemFont, 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
 }
 
-/* Premium Light Scrollbar */
+/* DevSkill Warm Scrollbar */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 7px;
+  height: 7px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #F7F8FA;
+  background: #FFF6F2;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #D1D5DB;
+  background: #FF5E3A;
   border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #9CA3AF;
+  background: #E84E2A;
 }
 
-/* Premium Clean White Cards & Inputs */
+/* Subtle Warm Dot Grid Background */
+.aqua-dots-bg,
+.warm-dots-bg {
+  background-image: radial-gradient(rgba(255, 94, 58, 0.12) 1.2px, transparent 1.2px);
+  background-size: 24px 24px;
+}
+
+/* DevSkill SaaS Cards & Inputs */
 .premium-card {
   background-color: #FFFFFF;
-  border: 1px solid #E5E7EB;
-  border-radius: 1rem;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.04);
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  border: 1px solid #FEEAE1;
+  border-radius: 1.25rem;
+  box-shadow: 0 4px 20px -2px rgba(255, 94, 58, 0.06);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .premium-card:hover {
-  border-color: #D1D5DB;
-  box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.06), 0 2px 4px -2px rgba(0, 0, 0, 0.04);
+  border-color: #FF5E3A;
+  box-shadow: 0 10px 30px -4px rgba(255, 94, 58, 0.16);
+  transform: translateY(-3px);
 }
 
 .glass-card {
-  background-color: #FFFFFF;
-  border: 1px solid #E5E7EB;
-  border-radius: 1rem;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04);
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  background-color: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(14px);
+  border: 1px solid #FEEAE1;
+  border-radius: 1.25rem;
+  box-shadow: 0 4px 24px -2px rgba(255, 94, 58, 0.08);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .glass-card:hover {
-  border-color: #D1D5DB;
-  box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.06);
+  border-color: #FF5E3A;
+  box-shadow: 0 10px 32px -4px rgba(255, 94, 58, 0.18);
+  transform: translateY(-2px);
 }
 
 .glass-input {
   background-color: #FFFFFF;
-  border: 1px solid #E5E7EB;
-  color: #171717;
+  border: 1px solid #FEEAE1;
+  color: #111827;
   border-radius: 0.75rem;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .glass-input:focus {
   outline: none;
-  border-color: #111827;
-  box-shadow: 0 0 0 3px rgba(17, 24, 39, 0.08);
+  border-color: #FF5E3A;
+  box-shadow: 0 0 0 3px rgba(255, 94, 58, 0.2);
+}
+
+/* ======================================================== */
+/* MODERN EDTECH DASHBOARD ANIMATIONS                       */
+/* ======================================================== */
+
+@keyframes dashboardFadeUp {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-up {
+  animation: dashboardFadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.delay-1 { animation-delay: 0.08s; }
+.delay-2 { animation-delay: 0.16s; }
+.delay-3 { animation-delay: 0.24s; }
+.delay-4 { animation-delay: 0.32s; }
+.delay-5 { animation-delay: 0.40s; }
+
+/* Radar Ping Ring for Live Status Indicators */
+@keyframes radarPing {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(0, 176, 116, 0.7);
+  }
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 8px rgba(0, 176, 116, 0);
+  }
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(0, 176, 116, 0);
+  }
+}
+
+.animate-radar-ping {
+  animation: radarPing 2s infinite cubic-bezier(0.24, 0, 0.38, 1);
+}
+
+/* Floating Micro-Animations */
+@keyframes floatGentle {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-6px) rotate(1.5deg);
+  }
+}
+
+.animate-float-gentle {
+  animation: floatGentle 4s ease-in-out infinite;
+}
+
+/* Shimmer Light Sweep on Cards & Buttons */
+@keyframes shimmerBeam {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.shimmer-hover {
+  position: relative;
+  overflow: hidden;
+}
+
+.shimmer-hover::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.28),
+    transparent
+  );
+  transform: translateX(-100%);
+  pointer-events: none;
+}
+
+.shimmer-hover:hover::after {
+  animation: shimmerBeam 0.85s ease-out;
+}
+
+/* Smooth Spring Lift */
+.spring-lift {
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.35s ease, border-color 0.25s ease;
+}
+
+.spring-lift:hover {
+  transform: translateY(-5px) scale(1.012);
+}
+
+.spring-lift-sm {
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease;
+}
+
+.spring-lift-sm:hover {
+  transform: translateY(-2px) scale(1.02);
+}
+
+/* Glowing Border Pulse */
+@keyframes orangePulseBorder {
+  0%, 100% {
+    border-color: rgba(255, 94, 58, 0.4);
+    box-shadow: 0 0 15px rgba(255, 94, 58, 0.15);
+  }
+  50% {
+    border-color: rgba(255, 94, 58, 0.85);
+    box-shadow: 0 0 25px rgba(255, 94, 58, 0.3);
+  }
+}
+
+.animate-aqua-border,
+.animate-orange-border {
+  animation: orangePulseBorder 3s infinite ease-in-out;
 }
 
 /* Print Specific Rules for Receipts & Reports */
@@ -85,9 +250,5 @@
     width: 100% !important;
     margin: 0 !important;
     padding: 20px !important;
-    background: #FFFFFF !important;
-    color: #000000 !important;
-    box-shadow: none !important;
-    border: none !important;
   }
 }

@@ -17,7 +17,10 @@ import {
   Phone,
   Mail,
   MapPin,
-  Calendar
+  Calendar,
+  UserPlus,
+  X,
+  CheckCircle2
 } from 'lucide-react';
 
 export const Students = () => {
@@ -41,6 +44,16 @@ export const Students = () => {
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState({ isOpen: false, id: null });
   const [submitting, setSubmitting] = useState(false);
+
+  // New Parent inline sub-form state
+  const [showNewParentForm, setShowNewParentForm] = useState(false);
+  const [newParentData, setNewParentData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    password: 'Parent@123'
+  });
+  const [creatingParent, setCreatingParent] = useState(false);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -119,7 +132,49 @@ export const Students = () => {
       parentIds: parentsList.length > 0 ? [parentsList[0]._id] : [],
       routeId: ''
     });
+    setShowNewParentForm(false);
+    setNewParentData({ name: '', email: '', phone: '', password: 'Parent@123' });
     setIsAddModalOpen(true);
+  };
+
+  // Create a brand-new parent account inline, then auto-select it
+  const handleCreateParent = async () => {
+    if (!newParentData.name || !newParentData.email) {
+      showToast('Parent name and email are required.', 'error', 'Validation');
+      return;
+    }
+    setCreatingParent(true);
+    try {
+      const res = await userAPI.create({
+        name: newParentData.name,
+        email: newParentData.email,
+        phone: newParentData.phone,
+        password: newParentData.password || 'Parent@123',
+        role: 'parent'
+      });
+      if (res.success) {
+        const created = res.data?.user || res.data;
+        // Refresh parents list and auto-select new parent
+        const parentRes = await userAPI.getParents();
+        if (parentRes.success) {
+          setParentsList(parentRes.data || []);
+          // find the newly created parent by email
+          const newP = (parentRes.data || []).find((p) => p.email === newParentData.email);
+          if (newP) {
+            setFormData((prev) => ({ ...prev, parentIds: [newP._id] }));
+          } else if (created?._id) {
+            setFormData((prev) => ({ ...prev, parentIds: [created._id] }));
+          }
+        }
+        showToast(`Parent "${newParentData.name}" created & linked!`, 'success', 'Parent Added');
+        setShowNewParentForm(false);
+        setNewParentData({ name: '', email: '', phone: '', password: 'Parent@123' });
+      }
+    } catch (err) {
+      showToast(err.message, 'error', 'Parent Creation Failed');
+    } finally {
+      setCreatingParent(false);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -225,7 +280,7 @@ export const Students = () => {
           >
             <Eye className="w-4 h-4" />
           </button>
-          {['super_admin', 'principal'].includes(role) && (
+          {['super_admin', 'admin', 'principal'].includes(role) && (
             <button
               onClick={() => setDeleteConfirm({ isOpen: true, id: row._id })}
               className="p-1.5 rounded-lg bg-slate-100 hover:bg-red-50 text-slate-500 hover:text-red-600 transition"
@@ -253,7 +308,7 @@ export const Students = () => {
           </p>
         </div>
 
-        {['super_admin', 'principal'].includes(role) && (
+        {['super_admin', 'admin', 'principal'].includes(role) && (
           <button
             onClick={handleOpenAdd}
             className="flex items-center gap-2 px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold text-sm rounded-xl shadow-xs transition duration-150 self-start sm:self-auto"
@@ -386,20 +441,117 @@ export const Students = () => {
               />
             </div>
 
-            <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Link Parent *</label>
-              <select
-                value={formData.parentIds[0] || ''}
-                onChange={(e) => setFormData({ ...formData, parentIds: [e.target.value] })}
-                className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-800 transition"
-              >
-                <option value="">Select Parent Account</option>
-                {parentsList.map((p) => (
-                  <option key={p._id} value={p._id}>
-                    {p.name} ({p.phone || p.email})
-                  </option>
-                ))}
-              </select>
+            <div className="sm:col-span-2">
+              {/* Link Parent — with inline "Add New Parent" option */}
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                  Link Parent / Guardian *
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setShowNewParentForm((v) => !v)}
+                  className={`flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-lg border transition ${
+                    showNewParentForm
+                      ? 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100'
+                      : 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
+                  }`}
+                >
+                  {showNewParentForm ? (
+                    <><X className="w-3.5 h-3.5" /> Cancel</>
+                  ) : (
+                    <><UserPlus className="w-3.5 h-3.5" /> + New Parent</>
+                  )}
+                </button>
+              </div>
+
+              {/* Existing Parent Dropdown */}
+              {!showNewParentForm && (
+                <select
+                  value={formData.parentIds[0] || ''}
+                  onChange={(e) => setFormData({ ...formData, parentIds: [e.target.value] })}
+                  className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-800 transition"
+                >
+                  <option value="">Select Existing Parent Account</option>
+                  {parentsList.map((p) => (
+                    <option key={p._id} value={p._id}>
+                      {p.name} ({p.phone || p.email})
+                    </option>
+                  ))}
+                </select>
+              )}
+
+              {/* New Parent Inline Sub-Form */}
+              {showNewParentForm && (
+                <div className="mt-2 p-4 rounded-xl border-2 border-emerald-200 bg-emerald-50 space-y-3">
+                  <p className="text-xs font-semibold text-emerald-800 flex items-center gap-1.5">
+                    <UserPlus className="w-3.5 h-3.5" />
+                    Register New Parent Account
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1">
+                        Full Name *
+                      </label>
+                      <input
+                        type="text"
+                        required={showNewParentForm}
+                        value={newParentData.name}
+                        onChange={(e) => setNewParentData({ ...newParentData, name: e.target.value })}
+                        placeholder="Parent Full Name"
+                        className="w-full bg-white border border-emerald-200 rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-400/40 focus:border-emerald-400 transition"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1">
+                        Email Address *
+                      </label>
+                      <input
+                        type="email"
+                        required={showNewParentForm}
+                        value={newParentData.email}
+                        onChange={(e) => setNewParentData({ ...newParentData, email: e.target.value })}
+                        placeholder="parent@example.com"
+                        className="w-full bg-white border border-emerald-200 rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-400/40 focus:border-emerald-400 transition"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1">
+                        Phone Number
+                      </label>
+                      <input
+                        type="tel"
+                        value={newParentData.phone}
+                        onChange={(e) => setNewParentData({ ...newParentData, phone: e.target.value })}
+                        placeholder="+91 98765 43210"
+                        className="w-full bg-white border border-emerald-200 rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-400/40 focus:border-emerald-400 transition"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1">
+                        Default Password
+                      </label>
+                      <input
+                        type="text"
+                        value={newParentData.password}
+                        onChange={(e) => setNewParentData({ ...newParentData, password: e.target.value })}
+                        placeholder="Parent@123"
+                        className="w-full bg-white border border-emerald-200 rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-400/40 focus:border-emerald-400 transition"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex justify-end">
+                    <button
+                      type="button"
+                      disabled={creatingParent}
+                      onClick={handleCreateParent}
+                      className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs rounded-xl shadow-sm transition disabled:opacity-60"
+                    >
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      {creatingParent ? 'Creating...' : 'Create & Link Parent'}
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div>

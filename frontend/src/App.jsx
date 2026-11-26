@@ -11,6 +11,7 @@ import { Dashboard } from './pages/Dashboard.jsx';
 import { Students } from './pages/Students.jsx';
 import { Parents } from './pages/Parents.jsx';
 import { Teachers } from './pages/Teachers.jsx';
+import { TeacherAttendance } from './pages/TeacherAttendance.jsx';
 import { Attendance } from './pages/Attendance.jsx';
 import { Fees } from './pages/Fees.jsx';
 import { Homework } from './pages/Homework.jsx';
@@ -24,6 +25,7 @@ import { Communications } from './pages/Communications.jsx';
 import { Reports } from './pages/Reports.jsx';
 import { Settings } from './pages/Settings.jsx';
 import { Profile } from './pages/Profile.jsx';
+import { MasterDirectory } from './pages/MasterDirectory.jsx';
 import { Loader } from './components/Loader.jsx';
 
 // Protected Route Guard with RBAC checks
@@ -47,15 +49,11 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
 };
 
 // Root route handler:
-// Not logged in → Public Landing Page
-// Logged in → Protected Dashboard
+// Directly renders Public Landing Page for all visitors (with "Go to Dashboard" if authenticated)
 const RootRoute = () => {
-  const { isAuthenticated, loading } = useAuth();
+  const { loading } = useAuth();
   if (loading) {
     return <Loader fullScreen message="Loading SchoolSphere..." />;
-  }
-  if (isAuthenticated) {
-    return <Navigate to="/dashboard" replace />;
   }
   return <LandingPage />;
 };
@@ -87,11 +85,12 @@ export const App = () => {
               }
             >
               <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/directory" element={<MasterDirectory />} />
               <Route path="/students" element={<Students />} />
               <Route
                 path="/parents"
                 element={
-                  <ProtectedRoute allowedRoles={['super_admin', 'principal']}>
+                  <ProtectedRoute allowedRoles={['super_admin', 'admin', 'principal']}>
                     <Parents />
                   </ProtectedRoute>
                 }
@@ -99,8 +98,16 @@ export const App = () => {
               <Route
                 path="/teachers"
                 element={
-                  <ProtectedRoute allowedRoles={['super_admin', 'principal']}>
+                  <ProtectedRoute allowedRoles={['super_admin', 'admin', 'principal']}>
                     <Teachers />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/teacher-attendance"
+                element={
+                  <ProtectedRoute allowedRoles={['super_admin']}>
+                    <TeacherAttendance />
                   </ProtectedRoute>
                 }
               />
@@ -111,7 +118,7 @@ export const App = () => {
               <Route
                 path="/ai-exam-generator"
                 element={
-                  <ProtectedRoute allowedRoles={['super_admin', 'principal', 'teacher']}>
+                  <ProtectedRoute allowedRoles={['super_admin', 'admin', 'principal', 'teacher']}>
                     <AIExamGenerator />
                   </ProtectedRoute>
                 }
@@ -120,7 +127,7 @@ export const App = () => {
               <Route
                 path="/payroll"
                 element={
-                  <ProtectedRoute allowedRoles={['super_admin', 'principal']}>
+                  <ProtectedRoute allowedRoles={['super_admin', 'admin', 'principal']}>
                     <Payroll />
                   </ProtectedRoute>
                 }
@@ -130,7 +137,7 @@ export const App = () => {
               <Route
                 path="/communications"
                 element={
-                  <ProtectedRoute allowedRoles={['super_admin', 'principal', 'teacher']}>
+                  <ProtectedRoute allowedRoles={['super_admin', 'admin', 'principal', 'teacher']}>
                     <Communications />
                   </ProtectedRoute>
                 }
@@ -138,7 +145,7 @@ export const App = () => {
               <Route
                 path="/reports"
                 element={
-                  <ProtectedRoute allowedRoles={['super_admin', 'principal']}>
+                  <ProtectedRoute allowedRoles={['super_admin', 'admin', 'principal']}>
                     <Reports />
                   </ProtectedRoute>
                 }
@@ -146,7 +153,7 @@ export const App = () => {
               <Route
                 path="/settings"
                 element={
-                  <ProtectedRoute allowedRoles={['super_admin', 'principal']}>
+                  <ProtectedRoute allowedRoles={['super_admin', 'admin', 'principal']}>
                     <Settings />
                   </ProtectedRoute>
                 }

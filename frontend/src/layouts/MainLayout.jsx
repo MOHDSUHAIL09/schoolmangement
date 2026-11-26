@@ -8,7 +8,7 @@ export const MainLayout = () => {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-[#F7F8FA] flex text-[#171717] antialiased">
+    <div className="min-h-screen bg-[#FFF6F2] flex text-[#111827] antialiased">
       {/* Sidebar */}
       <Sidebar
         isCollapsed={isCollapsed}

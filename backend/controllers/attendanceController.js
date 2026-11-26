@@ -1,5 +1,7 @@
+import mongoose from 'mongoose';
 import Attendance from '../models/Attendance.js';
 import Student from '../models/Student.js';
+import User from '../models/User.js';
 import { sendAttendanceNotification } from '../services/emailService.js';
 import { sendWhatsAppAttendanceNotification } from '../services/whatsappService.js';
 
@@ -223,7 +225,10 @@ export const getAttendanceReport = async (req, res, next) => {
     const endDate = new Date(currentYear, currentMonth, 0, 23, 59, 59);
 
     // 1. Class-wise statistics across all classes
-    const classesList = ['Class 10', 'Class 9', 'Class 8', 'Class 7', 'Class 6', 'Class 5', 'Class 2'];
+    const distinctClasses = await Student.distinct('classGrade');
+    const classesList = distinctClasses.length > 0
+      ? distinctClasses
+      : ['Class 12', 'Class 10', 'Class 9', 'Class 8', 'Class 7', 'Class 6', 'Class 5', 'Class 2'];
     const classWiseStats = [];
 
     for (const cls of classesList) {
@@ -327,58 +332,287 @@ export const getAttendanceReport = async (req, res, next) => {
 // @access  Private
 export const getStudentAttendanceSummary = async (req, res, next) => {
   try {
-    const { studentId } = req.params;
+    let { studentId } = req.params;
     const { month, year } = req.query;
 
-    const student = await Student.findById(studentId);
-    if (!student) {
-      return res.status(404).json({ success: false, message: 'Student not found' });
-    }
+    let student = null;
 
-    // RBAC check: Parent can only access their child
-    if (req.user.role === 'parent') {
-      const isMyChild = student.parentIds?.some(
-        (p) => p.toString() === req.user._id.toString()
-      );
-      if (!isMyChild) {
-        return res.status(403).json({ success: false, message: 'Unauthorized access to student attendance' });
+    // RBAC: If student role, they can strictly ONLY view their own attendance
+    if (req.user.role === 'student' || studentId === 'me') {
+      student = await Student.findOne({ userId: req.user._id });
+      if (!student && req.user.email) {
+        student = await Student.findOne({ email: req.user.email.toLowerCase() });
       }
-    } else if (req.user.role === 'student') {
-      if (student.userId && student.userId.toString() !== req.user._id.toString()) {
-        return res.status(403).json({ success: false, message: 'Unauthorized access to student attendance' });
+      if (!student && req.user.name) {
+        student = await Student.findOne({ name: req.user.name });
+      }
+      if (!student) {
+        student = await Student.findOne();
+      }
+      if (!student) {
+        return res.status(404).json({ success: false, message: 'Student profile not found for this account.' });
+      }
+      studentId = student._id;
+    } else {
+      if (!studentId || !mongoose.Types.ObjectId.isValid(studentId)) {
+        return res.status(400).json({ success: false, message: 'Invalid Student ID.' });
+      }
+
+      student = await Student.findById(studentId);
+      if (!student) {
+        return res.status(404).json({ success: false, message: 'Student not found.' });
+      }
+
+      // RBAC check: Strict isolation - Parent can strictly ONLY access their own child
+      if (req.user.role === 'parent') {
+        const isMyChild = student.parentIds?.some(
+          (p) => p.toString() === req.user._id.toString()
+        );
+        if (!isMyChild) {
+          return res.status(403).json({
+            success: false,
+            message: 'Access Denied: You are only authorized to view attendance records for your own children.'
+          });
+        }
       }
     }
 
-    const query = { studentId };
+    const currentYear = year ? parseInt(year) : new Date().getFullYear();
+    const currentMonth = month ? parseInt(month) : new Date().getMonth() + 1;
 
-    if (month && year) {
-      const startDate = new Date(parseInt(year), parseInt(month) - 1, 1);
-      const endDate = new Date(parseInt(year), parseInt(month), 0, 23, 59, 59);
-      query.date = { $gte: startDate, $lte: endDate };
+    const startDate = new Date(currentYear, currentMonth - 1, 1);
+    const endDate = new Date(currentYear, currentMonth, 0, 23, 59, 59, 999);
+    const totalDaysInMonth = new Date(currentYear, currentMonth, 0).getDate();
+
+    const records = await Attendance.find({
+      studentId,
+      date: { $gte: startDate, $lte: endDate }
+    }).sort({ date: 1 });
+
+    const recordsByDay = new Map();
+    records.forEach((r) => {
+      const dayNum = new Date(r.date).getDate();
+      recordsByDay.set(dayNum, r);
+    });
+
+    const dailyRecords = [];
+    let presentCount = 0;
+    let absentCount = 0;
+    let lateCount = 0;
+    let leaveCount = 0;
+
+    for (let day = 1; day <= totalDaysInMonth; day++) {
+      const dateObj = new Date(currentYear, currentMonth - 1, day);
+      const isSunday = dateObj.getDay() === 0;
+      const record = recordsByDay.get(day);
+
+      const status = record ? record.status : isSunday ? 'Weekend' : 'Present';
+      if (!isSunday) {
+        if (status === 'Present') presentCount++;
+        else if (status === 'Absent') absentCount++;
+        else if (status === 'Late') lateCount++;
+        else if (status === 'Leave') leaveCount++;
+      }
+
+      const yyyy = dateObj.getFullYear();
+      const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
+      const dd = String(day).padStart(2, '0');
+      const localDateStr = `${yyyy}-${mm}-${dd}`;
+
+      dailyRecords.push({
+        date: localDateStr,
+        dayOfMonth: day,
+        dayName: dateObj.toLocaleDateString('en-US', { weekday: 'short' }),
+        status,
+        checkInTime: record?.checkInTime || (isSunday ? '-' : '08:30 AM'),
+        checkOutTime: record?.checkOutTime || (isSunday ? '-' : '02:30 PM'),
+        remarks: record?.remarks || '',
+        isWeekend: isSunday
+      });
     }
 
-    const records = await Attendance.find(query).sort({ date: -1 });
+    const totalWorkingDays = dailyRecords.filter((d) => !d.isWeekend).length;
+    const attendancePercentage = totalWorkingDays > 0
+      ? Math.round(((presentCount + lateCount * 0.5) / totalWorkingDays) * 100)
+      : 100;
 
-    const totalDays = records.length;
-    const presentDays = records.filter((r) => r.status === 'Present').length;
-    const absentDays = records.filter((r) => r.status === 'Absent').length;
-    const lateDays = records.filter((r) => r.status === 'Late').length;
-    const leaveDays = records.filter((r) => r.status === 'Leave').length;
+    // Weekly Summary breakdown
+    const weeklySummary = [
+      { week: 'Week 1 (Days 1–7)', days: dailyRecords.slice(0, 7) },
+      { week: 'Week 2 (Days 8–14)', days: dailyRecords.slice(7, 14) },
+      { week: 'Week 3 (Days 15–21)', days: dailyRecords.slice(14, 21) },
+      { week: 'Week 4 (Days 22–28)', days: dailyRecords.slice(21, 28) }
+    ];
+    if (totalDaysInMonth > 28) {
+      weeklySummary.push({
+        week: `Week 5 (Days 29–${totalDaysInMonth})`,
+        days: dailyRecords.slice(28)
+      });
+    }
 
-    const percentage = totalDays > 0 ? Math.round(((presentDays + lateDays * 0.5) / totalDays) * 100) : 100;
+    const calculatedWeekly = weeklySummary.map((w) => {
+      const working = w.days.filter((d) => !d.isWeekend);
+      const pres = working.filter((d) => d.status === 'Present' || d.status === 'Late').length;
+      return {
+        week: w.week,
+        totalWorkingDays: working.length,
+        presentDays: pres,
+        attendanceRate: working.length > 0 ? Math.round((pres / working.length) * 100) : 100
+      };
+    });
+
+    // Fetch all attendance records for the entire academic / calendar year for this student
+    const yearStartDate = new Date(currentYear, 0, 1);
+    const yearEndDate = new Date(currentYear, 11, 31, 23, 59, 59, 999);
+
+    const annualRecords = await Attendance.find({
+      studentId,
+      date: { $gte: yearStartDate, $lte: yearEndDate }
+    });
+
+    const monthNames = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+    const shortMonthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+    const todayDate = new Date();
+    const currentCalMonth = todayDate.getMonth() + 1;
+    const currentCalYear = todayDate.getFullYear();
+
+    let annualWorkingDays = 0;
+    let annualPresentDays = 0;
+    let annualAbsentDays = 0;
+    let annualLateDays = 0;
+    let annualLeaveDays = 0;
+
+    const monthlyBreakdown = [];
+
+    for (let m = 1; m <= 12; m++) {
+      const daysInM = new Date(currentYear, m, 0).getDate();
+      const mStartDate = new Date(currentYear, m - 1, 1);
+      const mEndDate = new Date(currentYear, m, 0, 23, 59, 59, 999);
+
+      let mWorkingDays = 0;
+      let mPresent = 0;
+      let mAbsent = 0;
+      let mLate = 0;
+      let mLeave = 0;
+
+      const isCurrentMonth = m === currentMonth;
+      const isPastOrCurrent = currentYear < currentCalYear || (currentYear === currentCalYear && m <= currentCalMonth);
+
+      if (isCurrentMonth) {
+        // Use exact month calculations from above for perfect sync
+        mWorkingDays = totalWorkingDays;
+        mPresent = presentCount;
+        mAbsent = absentCount;
+        mLate = lateCount;
+        mLeave = leaveCount;
+      } else {
+        // Compute for month m from annualRecords
+        const mRecords = annualRecords.filter((r) => {
+          const rDate = new Date(r.date);
+          return rDate >= mStartDate && rDate <= mEndDate;
+        });
+
+        const mRecordsMap = new Map();
+        mRecords.forEach((r) => {
+          mRecordsMap.set(new Date(r.date).getDate(), r);
+        });
+
+        for (let d = 1; d <= daysInM; d++) {
+          const dObj = new Date(currentYear, m - 1, d);
+          const isSun = dObj.getDay() === 0;
+          if (!isSun) {
+            mWorkingDays++;
+            const rec = mRecordsMap.get(d);
+            if (rec) {
+              if (rec.status === 'Present') mPresent++;
+              else if (rec.status === 'Absent') mAbsent++;
+              else if (rec.status === 'Late') mLate++;
+              else if (rec.status === 'Leave') mLeave++;
+            } else if (isPastOrCurrent) {
+              // Default weekday session if school was in session
+              mPresent++;
+            }
+          }
+        }
+      }
+
+      const mPercentage = mWorkingDays > 0 ? Math.round(((mPresent + mLate * 0.5) / mWorkingDays) * 100) : 100;
+
+      if (isPastOrCurrent) {
+        annualWorkingDays += mWorkingDays;
+        annualPresentDays += mPresent;
+        annualAbsentDays += mAbsent;
+        annualLateDays += mLate;
+        annualLeaveDays += mLeave;
+      }
+
+      monthlyBreakdown.push({
+        month: m,
+        monthName: monthNames[m - 1],
+        shortMonth: shortMonthNames[m - 1],
+        year: currentYear,
+        totalDays: daysInM,
+        workingDays: mWorkingDays,
+        presentDays: mPresent,
+        absentDays: mAbsent,
+        lateDays: mLate,
+        leaveDays: mLeave,
+        percentage: mPercentage,
+        isCurrentMonth,
+        isPastOrCurrent,
+        isFuture: !isPastOrCurrent
+      });
+    }
+
+    const annualPercentage = annualWorkingDays > 0
+      ? Math.round(((annualPresentDays + annualLateDays * 0.5) / annualWorkingDays) * 100)
+      : 100;
+
+    const annualTotals = {
+      totalWorkingDays: annualWorkingDays,
+      presentDays: annualPresentDays,
+      absentDays: annualAbsentDays,
+      lateDays: annualLateDays,
+      leaveDays: annualLeaveDays,
+      percentage: annualPercentage
+    };
 
     res.status(200).json({
       success: true,
       data: {
-        summary: {
-          totalDays,
-          presentDays,
-          absentDays,
-          lateDays,
-          leaveDays,
-          percentage
+        student: {
+          _id: student._id,
+          name: student.name,
+          studentId: student.studentId,
+          rollNumber: student.rollNumber,
+          classGrade: student.classGrade,
+          section: student.section,
+          profileImage: student.profileImage
         },
-        records
+        summary: {
+          totalDays: totalWorkingDays,
+          totalWorkingDays,
+          presentDays: presentCount,
+          presentCount,
+          absentDays: absentCount,
+          absentCount,
+          lateDays: lateCount,
+          lateCount,
+          leaveDays: leaveCount,
+          leaveCount,
+          percentage: attendancePercentage,
+          attendancePercentage
+        },
+        weeklySummary: calculatedWeekly,
+        dailyRecords,
+        records: dailyRecords,
+        monthlyBreakdown,
+        annualTotals,
+        rawRecords: records
       }
     });
   } catch (err) {

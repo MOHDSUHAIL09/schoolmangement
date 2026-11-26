@@ -103,7 +103,7 @@ export const Transport = () => {
           </p>
         </div>
 
-        {['super_admin', 'principal'].includes(role) && (
+        {['super_admin', 'admin', 'principal'].includes(role) && (
           <button
             onClick={() => setIsModalOpen(true)}
             className="flex items-center gap-2 px-4 py-2.5 bg-gray-900 hover:bg-black text-white font-semibold text-xs rounded-xl shadow-xs transition duration-150 self-start sm:self-auto cursor-pointer"

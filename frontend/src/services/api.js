@@ -63,6 +63,14 @@ export const studentAPI = {
   getClassesMeta: () => api.get('/students/classes-meta')
 };
 
+export const teacherAPI = {
+  getAll: (params) => api.get('/teachers', { params }),
+  getById: (id) => api.get(`/teachers/${id}`),
+  create: (data) => api.post('/teachers', data),
+  update: (id, data) => api.put(`/teachers/${id}`, data),
+  delete: (id) => api.delete(`/teachers/${id}`)
+};
+
 export const attendanceAPI = {
   markBulk: (data) => api.post('/attendance/bulk', data),
   getByClass: (params) => api.get('/attendance/class', { params }),
@@ -72,11 +80,19 @@ export const attendanceAPI = {
   getOverview: () => api.get('/attendance/stats/overview')
 };
 
+export const teacherAttendanceAPI = {
+  getDaily: (params) => api.get('/teacher-attendance/daily', { params }),
+  saveDaily: (data) => api.post('/teacher-attendance/daily', data),
+  getTeacherHistory: (teacherId, params) => api.get(`/teacher-attendance/teacher/${teacherId}`, { params }),
+  getMonthly: (params) => api.get('/teacher-attendance/monthly', { params })
+};
+
 export const feeAPI = {
   getAll: (params) => api.get('/fees', { params }),
   getById: (id) => api.get(`/fees/${id}`),
   create: (data) => api.post('/fees', data),
   pay: (id, data) => api.put(`/fees/${id}/pay`, data),
+  recordPayment: (id, data) => api.put(`/fees/${id}/pay`, data),
   getStats: () => api.get('/fees/stats/overview')
 };
 

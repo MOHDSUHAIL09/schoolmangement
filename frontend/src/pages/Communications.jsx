@@ -381,8 +381,8 @@ export const Communications = () => {
             <span>SMTP Service: Active</span>
           </div>
 
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 font-bold shadow-xs">
-            <Smartphone className="w-3.5 h-3.5 text-emerald-600" />
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#FFF0EB] border border-[#FEEAE1] text-[#FF5E3A] font-bold shadow-xs">
+            <Smartphone className="w-3.5 h-3.5 text-[#FF5E3A]" />
             <span>WhatsApp Gateway: Ready</span>
           </div>
         </div>
@@ -401,22 +401,22 @@ export const Communications = () => {
         </div>
 
         <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs flex items-center gap-3">
-          <div className="w-11 h-11 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 flex items-center justify-center font-bold">
+          <div className="w-11 h-11 rounded-xl bg-[#FFF0EB] border border-[#FEEAE1] text-[#FF5E3A] flex items-center justify-center font-bold">
             <MessageSquare className="w-5 h-5" />
           </div>
           <div>
             <span className="text-[10px] uppercase font-bold text-slate-400 block">WhatsApp Messages</span>
-            <span className="text-xl font-black text-emerald-700">{statsData?.totalWhatsApp ?? 14}</span>
+            <span className="text-xl font-black text-[#FF5E3A]">{statsData?.totalWhatsApp ?? 14}</span>
           </div>
         </div>
 
         <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs flex items-center gap-3">
-          <div className="w-11 h-11 rounded-xl bg-teal-50 border border-teal-200 text-teal-700 flex items-center justify-center font-bold">
+          <div className="w-11 h-11 rounded-xl bg-orange-50 border border-orange-200 text-[#FF5E3A] flex items-center justify-center font-bold">
             <Clock className="w-5 h-5" />
           </div>
           <div>
             <span className="text-[10px] uppercase font-bold text-slate-400 block">Today's Notifications</span>
-            <span className="text-xl font-black text-teal-700">
+            <span className="text-xl font-black text-[#FF5E3A]">
               {(statsData?.todayEmails || 0) + (statsData?.todayWhatsApp || 0) + 4}
             </span>
           </div>
@@ -451,7 +451,7 @@ export const Communications = () => {
           onClick={() => setActiveTab('whatsapp')}
           className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition ${
             activeTab === 'whatsapp'
-              ? 'bg-emerald-600 text-white shadow-xs'
+              ? 'bg-[#FF5E3A] text-white shadow-xs'
               : 'text-slate-600 hover:bg-slate-100'
           }`}
         >
@@ -762,7 +762,7 @@ export const Communications = () => {
                     onClick={() => applyWhatsAppTemplate(tpl)}
                     className={`px-3 py-1 rounded-lg text-xs font-semibold transition border ${
                       waTemplate === tpl
-                        ? 'bg-emerald-50 border-emerald-300 text-emerald-800 font-bold'
+                        ? 'bg-[#FFF0EB] border-[#FF5E3A] text-[#FF5E3A] font-bold shadow-xs'
                         : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
                     }`}
                   >
@@ -842,17 +842,17 @@ export const Communications = () => {
               </div>
 
               {/* Instant Multilingual AI Reply Card */}
-              <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-slate-800 space-y-1.5">
+              <div className="p-3.5 rounded-xl bg-[#FFF0EB] border border-[#FEEAE1] text-slate-800 space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-900">
-                    <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-[#FF5E3A]">
+                    <Sparkles className="w-3.5 h-3.5 text-[#FF5E3A]" />
                     <span>Instant Multilingual AI Response (Auto-matches your language):</span>
                   </div>
                   {waTyping && (
-                    <span className="text-[11px] text-emerald-700 animate-pulse font-semibold">Generating reply...</span>
+                    <span className="text-[11px] text-[#FF5E3A] animate-pulse font-semibold">Generating reply...</span>
                   )}
                 </div>
-                <p className="text-xs text-slate-800 font-medium leading-relaxed bg-white/90 p-2.5 rounded-lg border border-emerald-100 whitespace-pre-wrap">
+                <p className="text-xs text-slate-800 font-medium leading-relaxed bg-white/90 p-2.5 rounded-lg border border-[#FEEAE1] whitespace-pre-wrap">
                   {waAIReply || 'Type any question in Hindi, Urdu, or English to receive an instant reply.'}
                 </p>
               </div>
@@ -861,7 +861,7 @@ export const Communications = () => {
                 <button
                   type="submit"
                   disabled={sendingWhatsApp}
-                  className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs rounded-xl shadow-md transition cursor-pointer"
+                  className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-[#FF5E3A] to-[#E04826] hover:from-[#E04826] hover:to-[#C84222] text-white font-bold text-xs rounded-xl shadow-md transition cursor-pointer"
                 >
                   <Smartphone className="w-4 h-4" />
                   <span>{sendingWhatsApp ? 'Sending via Gateway...' : 'Send WhatsApp Broadcast & Get Reply'}</span>
@@ -885,7 +885,7 @@ export const Communications = () => {
                   </div>
                   <div className="flex-1 min-w-0">
                     <span className="font-bold text-xs block truncate">SchoolSphere Official</span>
-                    <span className="text-[10px] text-emerald-400 block truncate">
+                    <span className="text-[10px] text-[#FF8A65] block truncate">
                       {waTyping ? 'typing...' : 'Online • Multilingual AI Ready'}
                     </span>
                   </div>
@@ -894,30 +894,30 @@ export const Communications = () => {
                 {/* Chat Wallpaper & Bubbles */}
                 <div className="flex-1 p-3 bg-[#0c1317] space-y-3 overflow-y-auto flex flex-col justify-end">
                   {/* Sent Message Bubble */}
-                  <div className="max-w-[85%] bg-[#005c4b] text-[#e9edef] p-3 rounded-2xl rounded-tr-xs text-[11px] space-y-1.5 self-end shadow-xs">
+                  <div className="max-w-[85%] bg-[#C84222] text-[#e9edef] p-3 rounded-2xl rounded-tr-xs text-[11px] space-y-1.5 self-end shadow-xs">
                     <p className="font-sans leading-relaxed whitespace-pre-wrap">{waMessage}</p>
-                    <div className="flex items-center justify-end gap-1 text-[9px] text-emerald-200 font-mono">
+                    <div className="flex items-center justify-end gap-1 text-[9px] text-orange-200 font-mono">
                       <span>{new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                      <span className="text-cyan-400 font-bold">✓✓</span>
+                      <span className="text-white font-bold">✓✓</span>
                     </div>
                   </div>
 
                   {/* Typing Indicator */}
                   {waTyping && (
                     <div className="max-w-[70%] bg-[#202c33] text-[#e9edef] px-3.5 py-2 rounded-2xl rounded-tl-xs text-[11px] self-start flex items-center gap-2 shadow-xs">
-                      <span className="text-[10px] text-emerald-400 font-semibold">AI is typing</span>
+                      <span className="text-[10px] text-[#FF8A65] font-semibold">AI is typing</span>
                       <span className="flex gap-1">
-                        <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-bounce" />
-                        <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-bounce [animation-delay:0.2s]" />
-                        <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-bounce [animation-delay:0.4s]" />
+                        <span className="w-1.5 h-1.5 bg-[#FF5E3A] rounded-full animate-bounce" />
+                        <span className="w-1.5 h-1.5 bg-[#FF5E3A] rounded-full animate-bounce [animation-delay:0.2s]" />
+                        <span className="w-1.5 h-1.5 bg-[#FF5E3A] rounded-full animate-bounce [animation-delay:0.4s]" />
                       </span>
                     </div>
                   )}
 
                   {/* AI Auto-Reply Bubble (Incoming from AI Assistant) */}
                   {!waTyping && waAIReply && (
-                    <div className="max-w-[88%] bg-[#202c33] text-[#e9edef] p-3 rounded-2xl rounded-tl-xs text-[11px] space-y-1.5 self-start shadow-xs border-l-2 border-emerald-500">
-                      <div className="flex items-center gap-1 text-[10px] text-emerald-400 font-bold">
+                    <div className="max-w-[88%] bg-[#202c33] text-[#e9edef] p-3 rounded-2xl rounded-tl-xs text-[11px] space-y-1.5 self-start shadow-xs border-l-2 border-[#FF5E3A]">
+                      <div className="flex items-center gap-1 text-[10px] text-[#FF8A65] font-bold">
                         <span>🤖 SchoolSphere AI Reply</span>
                       </div>
                       <p className="font-sans leading-relaxed whitespace-pre-wrap text-slate-100">{waAIReply}</p>
@@ -936,7 +936,7 @@ export const Communications = () => {
                   <button
                     type="button"
                     onClick={handleSendWhatsApp}
-                    className="w-7 h-7 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white flex items-center justify-center shrink-0 cursor-pointer"
+                    className="w-7 h-7 rounded-full bg-[#FF5E3A] hover:bg-[#E04826] text-white flex items-center justify-center shrink-0 cursor-pointer shadow-xs"
                     title="Send Message"
                   >
                     <Send className="w-3.5 h-3.5" />
@@ -1020,8 +1020,8 @@ export const Communications = () => {
                             <span>Email</span>
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
-                            <Smartphone className="w-3 h-3 text-emerald-600" />
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#FFF0EB] text-[#FF5E3A] border border-[#FEEAE1]">
+                            <Smartphone className="w-3 h-3 text-[#FF5E3A]" />
                             <span>WhatsApp</span>
                           </span>
                         )}
@@ -1045,10 +1045,10 @@ export const Communications = () => {
                       <td className="py-3 px-4 max-w-[240px]">
                         {log.aiReply ? (
                           <div
-                            className="p-1.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-950 text-[11px] leading-relaxed line-clamp-2"
+                            className="p-1.5 rounded-lg bg-[#FFF0EB] border border-[#FEEAE1] text-slate-900 text-[11px] leading-relaxed line-clamp-2"
                             title={log.aiReply}
                           >
-                            <span className="font-bold text-emerald-700 mr-1">Reply:</span>
+                            <span className="font-bold text-[#FF5E3A] mr-1">Reply:</span>
                             {log.aiReply}
                           </div>
                         ) : (
@@ -1061,8 +1061,8 @@ export const Communications = () => {
                       </td>
 
                       <td className="py-3 px-4 text-right">
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                          <Check className="w-3 h-3" />
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#FFF0EB] text-[#FF5E3A] border border-[#FEEAE1]">
+                          <Check className="w-3 h-3 text-[#FF5E3A]" />
                           <span>{log.status || 'Delivered'}</span>
                         </span>
                       </td>
@@ -1120,7 +1120,7 @@ export const Communications = () => {
                 type="checkbox"
                 checked={triggers.autoAbsenceWhatsApp}
                 onChange={(e) => setTriggers({ ...triggers, autoAbsenceWhatsApp: e.target.checked })}
-                className="w-5 h-5 text-emerald-600 rounded-md focus:ring-emerald-500"
+                className="w-5 h-5 text-[#FF5E3A] rounded-md focus:ring-[#FF5E3A] accent-[#FF5E3A]"
               />
             </div>
 
@@ -1188,7 +1188,7 @@ export const Communications = () => {
                 type="checkbox"
                 checked={triggers.autoTransportDelay}
                 onChange={(e) => setTriggers({ ...triggers, autoTransportDelay: e.target.checked })}
-                className="w-5 h-5 text-emerald-600 rounded-md focus:ring-emerald-500"
+                className="w-5 h-5 text-[#FF5E3A] rounded-md focus:ring-[#FF5E3A] accent-[#FF5E3A]"
               />
             </div>
           </div>

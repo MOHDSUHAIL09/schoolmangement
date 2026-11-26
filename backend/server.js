@@ -22,12 +22,15 @@ import {
 import { initWhatsApp } from './services/whatsappService.js';
 import { seedDatabase } from './seed/seedDatabase.js';
 import User from './models/User.js';
+import { syncExistingFaculty } from './controllers/teacherController.js';
 
 // Route Imports
 import authRoutes from './routes/authRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import studentRoutes from './routes/studentRoutes.js';
+import teacherRoutes from './routes/teacherRoutes.js';
 import attendanceRoutes from './routes/attendanceRoutes.js';
+import teacherAttendanceRoutes from './routes/teacherAttendanceRoutes.js';
 import feeRoutes from './routes/feeRoutes.js';
 import homeworkRoutes from './routes/homeworkRoutes.js';
 import chatRoutes from './routes/chatRoutes.js';
@@ -118,6 +121,18 @@ app.use(sanitizeRegexSearch);
 // Static uploads folder
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
+// Root endpoint
+app.get(['/', '/api'], (req, res) => {
+  res.status(200).json({
+    success: true,
+    name: 'SchoolSphere Backend API',
+    status: 'Running',
+    frontendUrl: 'http://localhost:5173',
+    healthCheck: '/api/health',
+    timestamp: new Date().toISOString()
+  });
+});
+
 // Health check endpoint
 app.get('/api/health', (req, res) => {
   res.status(200).json({
@@ -131,7 +146,9 @@ app.get('/api/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/students', studentRoutes);
+app.use('/api/teachers', teacherRoutes);
 app.use('/api/attendance', attendanceRoutes);
+app.use('/api/teacher-attendance', teacherAttendanceRoutes);
 app.use('/api/fees', feeRoutes);
 app.use('/api/homework', homeworkRoutes);
 app.use('/api/chat', chatRoutes);
@@ -151,6 +168,7 @@ app.use(errorHandler);
 export const startServer = async () => {
   try {
     await connectDB();
+    await syncExistingFaculty();
 
     // Auto-seed database if empty in development mode
     if (ENV.NODE_ENV !== 'production') {
@@ -167,7 +185,7 @@ export const startServer = async () => {
     });
 
     return new Promise((resolve) => {
-      server.listen(ENV.PORT, () => {
+      server.listen(ENV.PORT, '0.0.0.0', () => {
         logger.info(`====================================================`);
         logger.info(` SchoolSphere — Premium School Management System`);
         logger.info(` Server active on port: ${ENV.PORT} [${ENV.NODE_ENV}]`);

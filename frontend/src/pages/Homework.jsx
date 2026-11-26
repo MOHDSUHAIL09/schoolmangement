@@ -190,6 +190,18 @@ export const Homework = () => {
     }
   };
 
+  // Target student for student or parent role
+  const targetStudentId = role === 'parent' ? activeChild?._id : (role === 'student' ? user?._id : null);
+
+  // Helper to find submission for student or parent's active child
+  const getStudentSub = (hw) => {
+    if (!targetStudentId) return null;
+    return hw.submissions?.find((s) => {
+      const sId = s.studentId?._id || s.studentId;
+      return sId === targetStudentId || (activeChild?.studentId && s.studentId?.studentId === activeChild?.studentId);
+    });
+  };
+
   // Unique subjects list for filter
   const subjectsList = Array.from(new Set(homeworkList.map((h) => h.subject))).filter(Boolean);
 
@@ -201,15 +213,15 @@ export const Homework = () => {
     const isCompleted = hasSubmissions && hw.submissions.every((s) => s.status === 'Reviewed');
 
     if (statusFilter === 'pending') {
-      if (role === 'student') {
-        const studentSub = hw.submissions?.find((s) => s.studentId?._id === user?._id || s.studentId === user?._id);
+      if (['student', 'parent'].includes(role)) {
+        const studentSub = getStudentSub(hw);
         if (studentSub) return false; // Already submitted
       } else {
         if (isCompleted) return false;
       }
     } else if (statusFilter === 'completed') {
-      if (role === 'student') {
-        const studentSub = hw.submissions?.find((s) => s.studentId?._id === user?._id || s.studentId === user?._id);
+      if (['student', 'parent'].includes(role)) {
+        const studentSub = getStudentSub(hw);
         if (!studentSub) return false;
       } else {
         if (!isCompleted && !isPastDue) return false;
@@ -237,7 +249,14 @@ export const Homework = () => {
 
   // Calculate Summary Statistics
   const totalCount = homeworkList.length;
-  const pendingCount = homeworkList.filter((h) => new Date(h.dueDate) >= new Date()).length;
+  const totalSubjectsCount = subjectsList.length;
+  const childSubmittedCount = ['student', 'parent'].includes(role)
+    ? homeworkList.filter((h) => getStudentSub(h) != null).length
+    : 0;
+  const childPendingCount = ['student', 'parent'].includes(role)
+    ? homeworkList.filter((h) => getStudentSub(h) == null).length
+    : homeworkList.filter((h) => new Date(h.dueDate) >= new Date()).length;
+
   const totalSubmissions = homeworkList.reduce((acc, h) => acc + (h.submissions?.length || 0), 0);
   const reviewedCount = homeworkList.reduce(
     (acc, h) => acc + (h.submissions?.filter((s) => s.status === 'Reviewed').length || 0),
@@ -252,18 +271,20 @@ export const Homework = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2.5">
-            <BookOpen className="w-7 h-7 text-cyan-600" />
+            <BookOpen className="w-7 h-7 text-[#FF5E3A]" />
             <span>Homework & Coursework Management</span>
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            Issue assignments, specify curriculum deadlines, track student submissions, and evaluate answers.
+            {role === 'parent'
+              ? `Viewing active curriculum assignments, subject counts, and submission progress for ${activeChild?.name || 'child'}.`
+              : 'Issue assignments, specify curriculum deadlines, track student submissions, and evaluate answers.'}
           </p>
         </div>
 
-        {['super_admin', 'principal', 'teacher'].includes(role) && (
+        {['super_admin', 'admin', 'principal', 'teacher'].includes(role) && (
           <button
             onClick={() => setIsCreateModalOpen(true)}
-            className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-500 hover:to-teal-500 text-white font-bold text-xs rounded-xl shadow-md shadow-cyan-600/25 transition self-start sm:self-auto"
+            className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[#FF5E3A] to-[#E04826] hover:from-[#E04826] hover:to-[#C84222] text-white font-bold text-xs rounded-xl shadow-md shadow-[#FF5E3A]/25 transition self-start sm:self-auto cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             <span>Assign Homework</span>
@@ -272,49 +293,97 @@ export const Homework = () => {
       </div>
 
       {/* ======================================================== */}
-      {/* 2. KPI SUMMARY STRIP                                     */}
+      {/* 2. KPI SUMMARY STRIP (PARENT & TEACHER ADAPTIVE)         */}
       {/* ======================================================== */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs flex items-center gap-3">
-          <div className="w-11 h-11 rounded-xl bg-cyan-50 border border-cyan-200 text-cyan-700 flex items-center justify-center font-bold">
-            <BookOpen className="w-5 h-5" />
+      {['parent', 'student'].includes(role) ? (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          {/* Card 1: Total Subjects */}
+          <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs flex items-center gap-3">
+            <div className="w-11 h-11 rounded-xl bg-[#FFF0EB] border border-[#FFD5C5] text-[#FF5E3A] flex items-center justify-center font-bold">
+              <BookOpen className="w-5 h-5" />
+            </div>
+            <div>
+              <span className="text-[10px] uppercase font-bold text-slate-400 block">Total Subjects</span>
+              <span className="text-xl font-black text-slate-900">{totalSubjectsCount}</span>
+            </div>
           </div>
-          <div>
-            <span className="text-[10px] uppercase font-bold text-slate-400 block">Total Coursework</span>
-            <span className="text-xl font-black text-slate-900">{totalCount}</span>
-          </div>
-        </div>
 
-        <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs flex items-center gap-3">
-          <div className="w-11 h-11 rounded-xl bg-amber-50 border border-amber-200 text-amber-700 flex items-center justify-center font-bold">
-            <Hourglass className="w-5 h-5" />
+          {/* Card 2: Total Homework Tasks */}
+          <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs flex items-center gap-3">
+            <div className="w-11 h-11 rounded-xl bg-slate-100 border border-slate-200 text-slate-700 flex items-center justify-center font-bold">
+              <FileText className="w-5 h-5" />
+            </div>
+            <div>
+              <span className="text-[10px] uppercase font-bold text-slate-400 block">Total Coursework</span>
+              <span className="text-xl font-black text-slate-900">{totalCount}</span>
+            </div>
           </div>
-          <div>
-            <span className="text-[10px] uppercase font-bold text-slate-400 block">Active / Pending</span>
-            <span className="text-xl font-black text-amber-700">{pendingCount}</span>
-          </div>
-        </div>
 
-        <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs flex items-center gap-3">
-          <div className="w-11 h-11 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 flex items-center justify-center font-bold">
-            <CheckCircle className="w-5 h-5" />
+          {/* Card 3: Pending Submissions */}
+          <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs flex items-center gap-3">
+            <div className="w-11 h-11 rounded-xl bg-[#0F172A] border border-black text-[#FF5E3A] flex items-center justify-center font-bold">
+              <Hourglass className="w-5 h-5 text-[#FF5E3A]" />
+            </div>
+            <div>
+              <span className="text-[10px] uppercase font-bold text-slate-400 block">Pending to Submit</span>
+              <span className="text-xl font-black text-[#FF5E3A]">{childPendingCount}</span>
+            </div>
           </div>
-          <div>
-            <span className="text-[10px] uppercase font-bold text-slate-400 block">Submissions Received</span>
-            <span className="text-xl font-black text-emerald-700">{totalSubmissions}</span>
-          </div>
-        </div>
 
-        <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs flex items-center gap-3">
-          <div className="w-11 h-11 rounded-xl bg-teal-50 border border-teal-200 text-teal-700 flex items-center justify-center font-bold">
-            <Award className="w-5 h-5" />
-          </div>
-          <div>
-            <span className="text-[10px] uppercase font-bold text-slate-400 block">Graded & Reviewed</span>
-            <span className="text-xl font-black text-teal-700">{reviewedCount}</span>
+          {/* Card 4: Turned In / Submitted */}
+          <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs flex items-center gap-3">
+            <div className="w-11 h-11 rounded-xl bg-[#FFF0EB] border border-[#FFD5C5] text-[#FF5E3A] flex items-center justify-center font-bold">
+              <CheckCircle2 className="w-5 h-5 text-[#FF5E3A]" />
+            </div>
+            <div>
+              <span className="text-[10px] uppercase font-bold text-slate-400 block">Turned In / Done</span>
+              <span className="text-xl font-black text-slate-900">{childSubmittedCount}</span>
+            </div>
           </div>
         </div>
-      </div>
+      ) : (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs flex items-center gap-3">
+            <div className="w-11 h-11 rounded-xl bg-[#FFF0EB] border border-[#FFD5C5] text-[#FF5E3A] flex items-center justify-center font-bold">
+              <BookOpen className="w-5 h-5" />
+            </div>
+            <div>
+              <span className="text-[10px] uppercase font-bold text-slate-400 block">Total Coursework</span>
+              <span className="text-xl font-black text-slate-900">{totalCount}</span>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs flex items-center gap-3">
+            <div className="w-11 h-11 rounded-xl bg-[#0F172A] border border-black text-[#FF5E3A] flex items-center justify-center font-bold">
+              <Hourglass className="w-5 h-5 text-[#FF5E3A]" />
+            </div>
+            <div>
+              <span className="text-[10px] uppercase font-bold text-slate-400 block">Active / Pending</span>
+              <span className="text-xl font-black text-[#FF5E3A]">{childPendingCount}</span>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs flex items-center gap-3">
+            <div className="w-11 h-11 rounded-xl bg-slate-100 border border-slate-200 text-slate-800 flex items-center justify-center font-bold">
+              <CheckCircle className="w-5 h-5" />
+            </div>
+            <div>
+              <span className="text-[10px] uppercase font-bold text-slate-400 block">Submissions Received</span>
+              <span className="text-xl font-black text-slate-900">{totalSubmissions}</span>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs flex items-center gap-3">
+            <div className="w-11 h-11 rounded-xl bg-[#FFF0EB] border border-[#FFD5C5] text-[#FF5E3A] flex items-center justify-center font-bold">
+              <Award className="w-5 h-5 text-[#FF5E3A]" />
+            </div>
+            <div>
+              <span className="text-[10px] uppercase font-bold text-slate-400 block">Graded &amp; Reviewed</span>
+              <span className="text-xl font-black text-[#FF5E3A]">{reviewedCount}</span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ======================================================== */}
       {/* 3. FILTERS BAR (Pending / Completed, Class, Subject)     */}
@@ -326,7 +395,7 @@ export const Homework = () => {
           <button
             type="button"
             onClick={() => setStatusFilter('all')}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition ${
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
               statusFilter === 'all'
                 ? 'bg-slate-900 text-white shadow-xs'
                 : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
@@ -337,10 +406,10 @@ export const Homework = () => {
           <button
             type="button"
             onClick={() => setStatusFilter('pending')}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
               statusFilter === 'pending'
-                ? 'bg-amber-600 text-white shadow-xs'
-                : 'bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100'
+                ? 'bg-[#FF5E3A] text-white shadow-xs'
+                : 'bg-[#FFF0EB] text-[#FF5E3A] border border-[#FFD5C5] hover:bg-[#FFE5DC]'
             }`}
           >
             <Clock className="w-3.5 h-3.5" />
@@ -349,14 +418,14 @@ export const Homework = () => {
           <button
             type="button"
             onClick={() => setStatusFilter('completed')}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
               statusFilter === 'completed'
-                ? 'bg-emerald-600 text-white shadow-xs'
-                : 'bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100'
+                ? 'bg-[#0F172A] text-white shadow-xs'
+                : 'bg-slate-100 text-slate-800 border border-slate-200 hover:bg-slate-200'
             }`}
           >
             <CheckCircle2 className="w-3.5 h-3.5" />
-            <span>Completed / Graded</span>
+            <span>Completed / Turned In</span>
           </button>
         </div>
 
@@ -366,7 +435,7 @@ export const Homework = () => {
           <select
             value={selectedClass}
             onChange={(e) => setSelectedClass(e.target.value)}
-            className="px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-cyan-600 shadow-xs"
+            className="px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#FF5E3A] shadow-xs"
           >
             <option value="All">All Classes</option>
             {(classesList.length > 0 ? classesList : ['Class 10', 'Class 8', 'Class 5', 'Class 2']).map((cls) => (
@@ -380,9 +449,9 @@ export const Homework = () => {
           <select
             value={selectedSubject}
             onChange={(e) => setSelectedSubject(e.target.value)}
-            className="px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-cyan-600 shadow-xs"
+            className="px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#FF5E3A] shadow-xs"
           >
-            <option value="All">All Subjects</option>
+            <option value="All">All Subjects ({subjectsList.length})</option>
             {subjectsList.map((sub) => (
               <option key={sub} value={sub}>
                 {sub}
@@ -400,7 +469,7 @@ export const Homework = () => {
               placeholder="Search homework..."
               pattern="^[^<>$]{1,100}$"
               title="Search query must not contain script tags or injection symbols (<, >, $)."
-              className="w-full pl-8 pr-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-cyan-600 shadow-xs"
+              className="w-full pl-8 pr-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-[#FF5E3A] shadow-xs"
             />
           </div>
         </div>
@@ -426,21 +495,18 @@ export const Homework = () => {
             const totalSubs = hw.submissions?.length || 0;
             const reviewedSubs = hw.submissions?.filter((s) => s.status === 'Reviewed').length || 0;
 
-            // Student submission state
-            let studentSub = null;
-            if (role === 'student') {
-              studentSub = hw.submissions?.find((s) => s.studentId?._id === user?._id || s.studentId === user?._id);
-            }
+            // Student / Parent submission state
+            const studentSub = ['student', 'parent'].includes(role) ? getStudentSub(hw) : null;
 
             return (
               <div
                 key={hw._id}
-                className="bg-white rounded-2xl p-6 border border-slate-200 hover:border-cyan-300 shadow-xs hover:shadow-md transition duration-200 flex flex-col justify-between group"
+                className="bg-white rounded-2xl p-6 border border-slate-200 hover:border-[#FF5E3A] shadow-xs hover:shadow-md transition duration-200 flex flex-col justify-between group"
               >
                 <div>
                   {/* Top Badges Row */}
                   <div className="flex items-center justify-between gap-2 mb-3">
-                    <span className="text-xs font-bold px-3 py-1 rounded-full bg-cyan-50 text-cyan-800 border border-cyan-200">
+                    <span className="text-xs font-bold px-3 py-1 rounded-full bg-[#FFF0EB] text-[#FF5E3A] border border-[#FFD5C5]">
                       {hw.subject} &bull; {hw.classGrade} ({hw.section})
                     </span>
 
@@ -458,7 +524,7 @@ export const Homework = () => {
                   </div>
 
                   {/* Title & Description */}
-                  <h3 className="text-lg font-extrabold text-slate-900 group-hover:text-cyan-900 transition mb-2">
+                  <h3 className="text-lg font-extrabold text-slate-900 group-hover:text-[#FF5E3A] transition mb-2">
                     {hw.title}
                   </h3>
                   <p className="text-xs text-slate-600 leading-relaxed line-clamp-3 mb-4">
@@ -467,7 +533,7 @@ export const Homework = () => {
 
                   {/* Assigned By Teacher Info */}
                   <div className="flex items-center gap-2.5 p-3 rounded-xl bg-slate-50 border border-slate-100 text-xs text-slate-600 mb-4">
-                    <div className="w-7 h-7 rounded-full bg-cyan-600 text-white flex items-center justify-center font-bold text-xs shrink-0">
+                    <div className="w-7 h-7 rounded-full bg-[#0F172A] text-white flex items-center justify-center font-bold text-xs shrink-0">
                       {hw.teacherId?.name?.[0] || 'T'}
                     </div>
                     <div className="truncate">
@@ -487,11 +553,11 @@ export const Homework = () => {
                           href={att.startsWith('http') ? att : `http://${att}`}
                           target="_blank"
                           rel="noreferrer"
-                          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-cyan-50 hover:bg-cyan-100 border border-cyan-200 text-xs font-semibold text-cyan-800 transition"
+                          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-[#FFF0EB] hover:bg-[#FFE5DC] border border-[#FFD5C5] text-xs font-semibold text-[#FF5E3A] transition"
                         >
-                          <Paperclip className="w-3.5 h-3.5 text-cyan-600" />
+                          <Paperclip className="w-3.5 h-3.5 text-[#FF5E3A]" />
                           <span className="truncate max-w-[260px]">{att}</span>
-                          <ExternalLink className="w-3 h-3 text-cyan-500 shrink-0" />
+                          <ExternalLink className="w-3 h-3 text-[#FF5E3A] shrink-0" />
                         </a>
                       ))}
                     </div>
@@ -502,20 +568,23 @@ export const Homework = () => {
                 <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
                   {/* Status Indicator */}
                   <div>
-                    {role === 'student' ? (
+                    {['student', 'parent'].includes(role) ? (
                       studentSub ? (
                         <div className="flex items-center gap-1.5">
-                          <StatusBadge status={studentSub.status} />
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#FFF0EB] text-[#FF5E3A] border border-[#FFD5C5] text-xs font-bold">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-[#FF5E3A]" />
+                            <span>{role === 'parent' ? 'Child Submitted' : 'Submitted'}</span>
+                          </span>
                           {studentSub.marks !== null && (
-                            <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-                              Marks: {studentSub.marks}/100
+                            <span className="text-xs font-bold text-white bg-[#0F172A] px-2.5 py-0.5 rounded-full border border-black font-mono">
+                              Score: {studentSub.marks}/100
                             </span>
                           )}
                         </div>
                       ) : (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
-                          <Hourglass className="w-3 h-3 mr-1" />
-                          Pending Submission
+                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-[#0F172A] text-white border border-slate-800">
+                          <Hourglass className="w-3 h-3 mr-1 text-[#FF5E3A]" />
+                          <span>{role === 'parent' ? 'Child Pending — Not Yet Submitted' : 'Pending Submission'}</span>
                         </span>
                       )
                     ) : (
@@ -541,14 +610,29 @@ export const Homework = () => {
                           setSubmitFile(studentSub?.fileUrl || '');
                           setIsSubmitModalOpen(true);
                         }}
-                        className="px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-500 hover:to-teal-500 text-white font-bold text-xs shadow-sm transition"
+                        className="px-4 py-2 rounded-xl bg-[#FF5E3A] hover:bg-[#E04826] text-white font-bold text-xs shadow-md shadow-[#FF5E3A]/25 transition cursor-pointer"
                       >
                         {studentSub ? 'Update Work' : 'Turn In Work'}
                       </button>
                     )}
 
+                    {/* Parent View Submission Button */}
+                    {role === 'parent' && studentSub && (
+                      <button
+                        onClick={() => {
+                          setSelectedHw(hw);
+                          setSubmitText(studentSub?.textSubmission || '');
+                          setSubmitFile(studentSub?.fileUrl || '');
+                          setIsSubmitModalOpen(true);
+                        }}
+                        className="px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-[#FFF0EB] text-slate-800 hover:text-[#FF5E3A] font-bold text-xs border border-slate-200 transition cursor-pointer"
+                      >
+                        View Solution
+                      </button>
+                    )}
+
                     {/* Teacher/Admin Review Submissions Button */}
-                    {['teacher', 'super_admin', 'principal'].includes(role) && (
+                    {['super_admin', 'admin', 'principal', 'teacher'].includes(role) && (
                       <>
                         <button
                           onClick={() => {
@@ -561,14 +645,14 @@ export const Homework = () => {
                             setGradingState(state);
                             setIsSubmissionsDrawerOpen(true);
                           }}
-                          className="px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold shadow-xs transition"
+                          className="px-3.5 py-1.5 rounded-xl bg-[#0F172A] hover:bg-slate-800 text-white text-xs font-bold shadow-xs transition cursor-pointer"
                         >
                           Review Submissions ({totalSubs})
                         </button>
 
                         <button
                           onClick={() => handleDeleteHomework(hw._id)}
-                          className="p-1.5 rounded-lg bg-slate-100 hover:bg-red-50 text-slate-400 hover:text-red-600 transition"
+                          className="p-1.5 rounded-lg bg-slate-100 hover:bg-red-50 text-slate-400 hover:text-red-600 transition cursor-pointer"
                           title="Delete Homework"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -596,7 +680,7 @@ export const Homework = () => {
               <select
                 value={createForm.classGrade}
                 onChange={(e) => setCreateForm({ ...createForm, classGrade: e.target.value })}
-                className="w-full px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-cyan-600 shadow-xs"
+                className="w-full px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#FF5E3A] shadow-xs"
               >
                 {(classesList.length > 0 ? classesList : ['Class 10', 'Class 8', 'Class 5', 'Class 2']).map((cls) => (
                   <option key={cls} value={cls}>
@@ -613,7 +697,7 @@ export const Homework = () => {
               <select
                 value={createForm.section}
                 onChange={(e) => setCreateForm({ ...createForm, section: e.target.value })}
-                className="w-full px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-cyan-600 shadow-xs"
+                className="w-full px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#FF5E3A] shadow-xs"
               >
                 <option value="All">All Sections (Entire Class)</option>
                 <option value="A">Section A</option>
@@ -637,7 +721,7 @@ export const Homework = () => {
                 maxLength={80}
                 onChange={(e) => setCreateForm({ ...createForm, subject: e.target.value.replace(/[<>$\0]/g, '') })}
                 placeholder="e.g. Mathematics, Science, English"
-                className="w-full px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-cyan-600 shadow-xs"
+                className="w-full px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-[#FF5E3A] shadow-xs"
               />
             </div>
 
@@ -650,7 +734,7 @@ export const Homework = () => {
                 required
                 value={createForm.dueDate}
                 onChange={(e) => setCreateForm({ ...createForm, dueDate: e.target.value })}
-                className="w-full px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-cyan-600 shadow-xs"
+                className="w-full px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#FF5E3A] shadow-xs"
               />
             </div>
           </div>
@@ -667,7 +751,7 @@ export const Homework = () => {
               placeholder="e.g. Linear Algebra & Matrix Eigenvalues Problem Set"
               pattern="^[^<>]{2,150}$"
               title="Title must be 2 to 150 characters without HTML brackets (< >)."
-              className="w-full px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-cyan-600 shadow-xs"
+              className="w-full px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-[#FF5E3A] shadow-xs"
             />
           </div>
 
@@ -681,7 +765,7 @@ export const Homework = () => {
               value={createForm.description}
               onChange={(e) => setCreateForm({ ...createForm, description: e.target.value })}
               placeholder="Provide detailed questions, required steps, reading references, and grading criteria..."
-              className="w-full px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-cyan-600 shadow-xs"
+              className="w-full px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-[#FF5E3A] shadow-xs"
             />
           </div>
 
@@ -698,7 +782,7 @@ export const Homework = () => {
                 placeholder="https://drive.google.com/... or resource file link"
                 pattern="https?://.+"
                 title="Attachment link must be a valid http:// or https:// URL."
-                className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-cyan-600 shadow-xs"
+                className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-[#FF5E3A] shadow-xs"
               />
             </div>
           </div>
@@ -714,7 +798,7 @@ export const Homework = () => {
             <button
               type="submit"
               disabled={submitting}
-              className="px-5 py-2 bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-500 hover:to-teal-500 text-white rounded-xl text-xs font-bold shadow-sm transition disabled:opacity-50"
+              className="px-5 py-2 bg-[#FF5E3A] hover:bg-[#E04826] text-white rounded-xl text-xs font-bold shadow-md shadow-[#FF5E3A]/25 transition disabled:opacity-50 cursor-pointer"
             >
               {submitting ? 'Publishing...' : 'Assign Homework'}
             </button>
@@ -728,7 +812,7 @@ export const Homework = () => {
       <Modal isOpen={isSubmitModalOpen} onClose={() => setIsSubmitModalOpen(false)} title="Turn In Homework Assignment">
         <form onSubmit={handleSubmitWork} className="space-y-4">
           <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs">
-            <span className="text-[10px] font-bold uppercase text-cyan-800 tracking-wider">
+            <span className="text-[10px] font-bold uppercase text-[#FF5E3A] tracking-wider">
               {selectedHw?.subject} &bull; {selectedHw?.classGrade}
             </span>
             <h4 className="font-extrabold text-sm text-slate-900 mt-1">{selectedHw?.title}</h4>
@@ -745,7 +829,7 @@ export const Homework = () => {
               value={submitText}
               onChange={(e) => setSubmitText(e.target.value)}
               placeholder="Paste answers, mathematical working, essay draft, or notes..."
-              className="w-full px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-cyan-600 shadow-xs"
+              className="w-full px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-[#FF5E3A] shadow-xs"
             />
           </div>
 
@@ -760,7 +844,7 @@ export const Homework = () => {
               placeholder="https://drive.google.com/..."
               pattern="https?://.+"
               title="Submission link must be a valid http:// or https:// URL."
-              className="w-full px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-cyan-600 shadow-xs"
+              className="w-full px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-[#FF5E3A] shadow-xs"
             />
           </div>
 
@@ -775,7 +859,7 @@ export const Homework = () => {
             <button
               type="submit"
               disabled={submitting}
-              className="px-5 py-2 bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-500 hover:to-teal-500 text-white rounded-xl text-xs font-bold shadow-sm transition disabled:opacity-50"
+              className="px-5 py-2 bg-[#FF5E3A] hover:bg-[#E04826] text-white rounded-xl text-xs font-bold shadow-md shadow-[#FF5E3A]/25 transition disabled:opacity-50 cursor-pointer"
             >
               {submitting ? 'Submitting...' : 'Turn In Solution'}
             </button>
@@ -799,7 +883,7 @@ export const Homework = () => {
               <span className="text-slate-400 mx-1.5">&bull;</span>
               <span className="text-slate-600">Due: {formatDate(selectedHw?.dueDate)}</span>
             </div>
-            <span className="font-bold text-cyan-800 bg-cyan-50 px-2.5 py-0.5 rounded-full border border-cyan-200">
+            <span className="font-bold text-[#FF5E3A] bg-[#FFF0EB] px-2.5 py-0.5 rounded-full border border-[#FFD5C5]">
               {selectedHw?.submissions?.length || 0} Total Submissions Received
             </span>
           </div>
@@ -818,7 +902,7 @@ export const Homework = () => {
                 return (
                   <div
                     key={sId}
-                    className="p-5 rounded-2xl bg-white border border-slate-200 hover:border-cyan-300 shadow-xs transition space-y-3"
+                    className="p-5 rounded-2xl bg-white border border-slate-200 hover:border-[#FF5E3A] shadow-xs transition space-y-3"
                   >
                     {/* Student Info & Status */}
                     <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-slate-100">
@@ -843,7 +927,7 @@ export const Homework = () => {
                       <div className="flex items-center gap-2">
                         <StatusBadge status={sub.status} />
                         {sub.marks !== null && (
-                          <span className="text-xs font-black text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
+                          <span className="text-xs font-black text-white bg-[#0F172A] px-2.5 py-0.5 rounded-full border border-black font-mono">
                             Score: {sub.marks}/100
                           </span>
                         )}
@@ -861,7 +945,7 @@ export const Homework = () => {
                           href={sub.fileUrl.startsWith('http') ? sub.fileUrl : `http://${sub.fileUrl}`}
                           target="_blank"
                           rel="noreferrer"
-                          className="mt-2 inline-flex items-center gap-1.5 text-xs font-bold text-cyan-700 hover:text-cyan-900 underline"
+                          className="mt-2 inline-flex items-center gap-1.5 text-xs font-bold text-[#FF5E3A] hover:text-[#E04826] underline"
                         >
                           <Paperclip className="w-3.5 h-3.5" />
                           <span>Open Student Document Attachment &rarr;</span>
@@ -887,7 +971,7 @@ export const Homework = () => {
                             })
                           }
                           placeholder="e.g. 95"
-                          className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-cyan-600"
+                          className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#FF5E3A]"
                         />
                       </div>
 
@@ -908,14 +992,14 @@ export const Homework = () => {
                             })
                           }
                           placeholder="Accurate mathematical working..."
-                          className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-cyan-600"
+                          className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-[#FF5E3A]"
                         />
                       </div>
 
                       <button
                         type="button"
                         onClick={() => handleGradeSubmission(sId)}
-                        className="w-full px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition shadow-xs"
+                        className="w-full px-4 py-2 bg-[#0F172A] hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition shadow-xs cursor-pointer"
                       >
                         Save Evaluation
                       </button>

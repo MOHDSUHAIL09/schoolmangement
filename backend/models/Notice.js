@@ -4,7 +4,7 @@ const noticeSchema = new mongoose.Schema(
   {
     type: {
       type: String,
-      enum: ['Notice', 'Event', 'Gallery'],
+      enum: ['Notice', 'Event', 'Gallery', 'Urgent'],
       default: 'Notice'
     },
     title: {

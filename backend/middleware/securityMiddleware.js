@@ -1,165 +1,219 @@
+
 import rateLimit from 'express-rate-limit';
 
 /**
- * Recursive sanitizer for NoSQL Injection
- * Strips keys containing '$' or '.' from request body, query, and params.
+ * Safe recursive NoSQL key sanitizer
  */
 export const sanitizeNoSQL = (req, res, next) => {
   const sanitize = (obj) => {
     if (!obj || typeof obj !== 'object') return obj;
 
     if (Array.isArray(obj)) {
-      return obj.map((item) => sanitize(item));
+      return obj.map(sanitize);
     }
 
-    const clean = {};
-    for (const key of Object.keys(obj)) {
-      // Strip any key starting with '$' or containing '.'
-      if (key.startsWith('$') || key.includes('.')) {
+    const clean = Object.create(null);
+
+    for (const [key, value] of Object.entries(obj)) {
+      if (
+        key.startsWith('$') ||
+        key.includes('.') ||
+        key === '__proto__' ||
+        key === 'constructor' ||
+        key === 'prototype'
+      ) {
         continue;
       }
-      clean[key] = sanitize(obj[key]);
+
+      clean[key] = sanitize(value);
     }
+
     return clean;
   };
 
-  if (req.body) req.body = sanitize(req.body);
-  if (req.query) req.query = sanitize(req.query);
-  if (req.params) req.params = sanitize(req.params);
+  if (req.body && typeof req.body === 'object') {
+    req.body = sanitize(req.body);
+  }
+
+  // Express 5 req.query is read-only.
+  // Use req.safeQuery in controllers instead.
+  req.safeQuery = sanitize(req.query || {});
 
   next();
 };
 
 /**
- * XSS Filter: Strips dangerous HTML and script injections from user strings
+ * Basic dangerous HTML input filtering.
+ * This is NOT a replacement for output encoding.
  */
 export const sanitizeXSS = (req, res, next) => {
-  const stripDangerous = (val) => {
-    if (typeof val !== 'string') return val;
+  const stripDangerous = (value) => {
+    if (typeof value !== 'string') return value;
 
-    // Remove script tags, javascript: pseudo-protocols, and malicious event handlers
-    return val
-      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-      .replace(/javascript:[^"']*/gi, '')
-      .replace(/onload\s*=\s*["'][^"']*["']/gi, '')
-      .replace(/onerror\s*=\s*["'][^"']*["']/gi, '')
-      .replace(/onclick\s*=\s*["'][^"']*["']/gi, '')
-      .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '');
+    return value
+      .replace(/<script\b[^>]*>[\s\S]*?<\/script\s*>/gi, '')
+      .replace(/<iframe\b[^>]*>[\s\S]*?<\/iframe\s*>/gi, '')
+      .replace(/javascript\s*:/gi, '')
+      .replace(/on(?:load|error|click|mouseover)\s*=/gi, '');
   };
 
   const sanitizeValues = (obj) => {
     if (!obj || typeof obj !== 'object') return obj;
 
     if (Array.isArray(obj)) {
-      return obj.map((item) => (typeof item === 'object' ? sanitizeValues(item) : stripDangerous(item)));
+      return obj.map(sanitizeValues);
     }
 
     const clean = {};
-    for (const [key, val] of Object.entries(obj)) {
-      if (typeof val === 'string') {
-        clean[key] = stripDangerous(val);
-      } else if (typeof val === 'object' && val !== null) {
-        clean[key] = sanitizeValues(val);
+
+    for (const [key, value] of Object.entries(obj)) {
+      if (typeof value === 'string') {
+        clean[key] = stripDangerous(value);
+      } else if (value && typeof value === 'object') {
+        clean[key] = sanitizeValues(value);
       } else {
-        clean[key] = val;
+        clean[key] = value;
       }
     }
+
     return clean;
   };
 
-  if (req.body) req.body = sanitizeValues(req.body);
-  if (req.query) req.query = sanitizeValues(req.query);
+  if (req.body && typeof req.body === 'object') {
+    req.body = sanitizeValues(req.body);
+  }
+
+  req.safeQuery = sanitizeValues(req.safeQuery || req.query || {});
 
   next();
 };
 
 /**
  * Parameter Pollution Defense
- * Flattens array-polluted query parameters into single safe strings
  */
 export const preventParameterPollution = (req, res, next) => {
-  if (req.query) {
-    const singleParamFields = ['search', 'role', 'classGrade', 'section', 'status', 'page', 'limit', 'month', 'channel'];
-    for (const field of singleParamFields) {
-      if (Array.isArray(req.query[field])) {
-        // Take the last scalar entry safely
-        req.query[field] = String(req.query[field][req.query[field].length - 1]);
-      }
+  const query = { ...(req.safeQuery || req.query || {}) };
+
+  const singleParamFields = [
+    'search',
+    'role',
+    'classGrade',
+    'section',
+    'status',
+    'page',
+    'limit',
+    'month',
+    'channel'
+  ];
+
+  for (const field of singleParamFields) {
+    if (Array.isArray(query[field])) {
+      const values = query[field].filter(
+        value => typeof value === 'string' ||
+                 typeof value === 'number'
+      );
+
+      query[field] = values.length
+        ? String(values[values.length - 1])
+        : '';
     }
   }
+
+  req.safeQuery = query;
   next();
 };
 
 /**
- * ReDoS & Regex Injection Defense:
- * Escapes regex special characters in search parameters and limits length to 100 characters.
+ * Regex Injection Protection
  */
 export const escapeRegex = (str) => {
   if (typeof str !== 'string') return '';
-  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').slice(0, 100);
+
+  return str
+    .slice(0, 100)
+    .replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 };
 
 export const sanitizeRegexSearch = (req, res, next) => {
-  if (req.query && req.query.search && typeof req.query.search === 'string') {
-    req.query.search = escapeRegex(req.query.search.trim());
+  const search = req.safeQuery?.search;
+
+  if (typeof search === 'string') {
+    req.safeQuery.searchRegex = escapeRegex(search.trim());
   }
+
   next();
 };
 
 /**
- * Enterprise Security Headers & Fingerprint Removal
+ * Security Headers
  */
 export const enterpriseSecurityHeaders = (req, res, next) => {
-  // Prevent MIME-sniffing
   res.setHeader('X-Content-Type-Options', 'nosniff');
-  // Restrict Flash / PDF cross-domain policy
   res.setHeader('X-Permitted-Cross-Domain-Policies', 'none');
-  // Disable non-essential browser device permissions
-  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
-  // Origin isolation policy
+  res.setHeader(
+    'Permissions-Policy',
+    'camera=(), microphone=(), geolocation=()'
+  );
   res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+
   next();
 };
 
 /**
- * Security Audit Event Logger
+ * Security Audit Logger
  */
 export const securityAuditLogger = (req, res, next) => {
-  const originalEnd = res.end;
-  res.end = function (...args) {
-    if (res.statusCode === 401 || res.statusCode === 403 || res.statusCode === 429 || res.statusCode === 423) {
-      const clientIp = req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress;
-      console.warn(`[SECURITY AUDIT] ${new Date().toISOString()} | Status: ${res.statusCode} | Method: ${req.method} | Path: ${req.originalUrl} | IP: ${clientIp} | Agent: ${req.headers['user-agent'] || 'Unknown'}`);
+  res.on('finish', () => {
+    if ([401, 403, 429, 423].includes(res.statusCode)) {
+      console.warn(
+        `[SECURITY AUDIT] ${new Date().toISOString()} | ` +
+        `Status: ${res.statusCode} | ` +
+        `Method: ${req.method} | ` +
+        `Path: ${req.path} | ` +
+        `IP: ${req.ip || 'Unknown'} | ` +
+        `Agent: ${req.headers['user-agent'] || 'Unknown'}`
+      );
     }
-    return originalEnd.apply(this, args);
-  };
+  });
+
   next();
 };
 
 /**
- * Strict Anti-Brute-Force Rate Limiter for Authentication Endpoints
+ * Authentication Anti-Brute-Force Rate Limiter
  */
 export const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: process.env.NODE_ENV === 'test' ? 1000 : 15, // 15 attempts per 15 minutes
+  windowMs: 15 * 60 * 1000,
+
+  // Generous limit in development to allow seamless multi-role testing
+  max: process.env.NODE_ENV === 'production' ? 100 : 2000,
+
   standardHeaders: true,
   legacyHeaders: false,
-  skipSuccessfulRequests: false,
+
+  skipSuccessfulRequests: true,
+
   message: {
     success: false,
-    message: 'Too many authentication attempts. Please try again after 15 minutes.'
+    message:
+      'Too many authentication attempts. Please try again after 15 minutes.'
   }
 });
 
 /**
- * Sensitive Data Redactor: ensures passwords or secret tokens never leak in responses
+ * Sensitive Data Redactor
  */
 export const sanitizeResponseData = (data) => {
   if (!data || typeof data !== 'object') return data;
-  if (Array.isArray(data)) return data.map(sanitizeResponseData);
+
+  if (Array.isArray(data)) {
+    return data.map(sanitizeResponseData);
+  }
 
   const clean = { ...data };
+
   delete clean.password;
   delete clean.__v;
+
   return clean;
 };

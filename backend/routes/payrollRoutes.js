@@ -11,8 +11,8 @@ import { authorizeRoles } from '../middleware/roleMiddleware.js';
 const router = express.Router();
 
 router.use(protect);
-// Strictly restricted to super_admin and principal
-router.use(authorizeRoles('super_admin', 'principal'));
+// Strictly restricted to super_admin, admin and principal
+router.use(authorizeRoles('super_admin', 'admin', 'principal'));
 
 router.get('/stats/overview', getPayrollStats);
 

@@ -17,11 +17,11 @@ router.get('/stats/overview', getFeeStats);
 
 router.route('/')
   .get(getAllFees)
-  .post(authorizeRoles('super_admin', 'principal'), createFee);
+  .post(authorizeRoles('super_admin', 'admin', 'principal'), createFee);
 
 router.route('/:id')
   .get(getFeeById);
 
-router.put('/:id/pay', authorizeRoles('super_admin', 'principal'), recordPayment);
+router.put('/:id/pay', authorizeRoles('super_admin', 'admin', 'principal', 'parent', 'student'), recordPayment);
 
 export default router;
